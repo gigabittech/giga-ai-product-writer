@@ -68,7 +68,7 @@ class Giga_APW_Admin {
     }
 
     public function render_meta_box($post) {
-        require GIGA_APW_PLUGIN_DIR . 'templates/metabox-main.php';
+        require GIGA_APW_PLUGIN_DIR . 'admin/templates/metabox-main.php';
     }
 
     public function render_settings_page() {
@@ -82,14 +82,14 @@ class Giga_APW_Admin {
 
         settings_errors('giga_apw_messages');
 
-        require_once GIGA_APW_PLUGIN_DIR . 'templates/page-settings.php';
+        require_once GIGA_APW_PLUGIN_DIR . 'admin/templates/page-settings.php';
     }
 
     public function render_bulk_page() {
-        require_once GIGA_APW_PLUGIN_DIR . 'templates/page-bulk.php';
+        require_once GIGA_APW_PLUGIN_DIR . 'admin/templates/page-bulk.php';
     }
 
     public function render_voice_page() {
-        require_once GIGA_APW_PLUGIN_DIR . 'templates/page-brand-voice.php';
+        require_once GIGA_APW_PLUGIN_DIR . 'admin/templates/page-brand-voice.php';
     }
 }

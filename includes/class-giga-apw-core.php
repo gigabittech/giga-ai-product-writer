@@ -97,14 +97,14 @@ class Giga_APW_Core {
         if ($is_product_screen || $is_giga_screen) {
             wp_enqueue_style(
                 'giga-apw-admin',
-                GIGA_APW_PLUGIN_URL . 'assets/css/giga-apw-admin.css',
+                GIGA_APW_PLUGIN_URL . 'admin/css/giga-apw-admin.css',
                 [],
                 GIGA_APW_VERSION
             );
 
             wp_enqueue_script(
                 'giga-apw-admin',
-                GIGA_APW_PLUGIN_URL . 'assets/js/giga-apw-admin.js',
+                GIGA_APW_PLUGIN_URL . 'admin/js/giga-apw-admin.js',
                 [],
                 GIGA_APW_VERSION,
                 true

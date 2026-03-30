@@ -17,7 +17,7 @@ class Giga_APW_Preview {
 
     public function render($field_id, $label, $current_content, $generated_content, $seo_badge = '', $indicator = '') {
         ob_start();
-        include GIGA_APW_PLUGIN_DIR . 'templates/metabox-preview.php';
+        include GIGA_APW_PLUGIN_DIR . 'admin/templates/metabox-preview.php';
         return ob_get_clean();
     }
 }
