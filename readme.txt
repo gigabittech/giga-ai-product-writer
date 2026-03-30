@@ -1,12 +1,12 @@
 === Giga AI Product Writer ===
-Contributors: gigaverse
+Contributors: Gigabit
 Tags: woocommerce, product description, ai, seo, claude
 Requires at least: 5.8
 Tested up to: 6.4
 Requires PHP: 8.0
 Stable tag: 1.0.0
 License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+License URI: https://github.com/gigabittech/giga-ai-product-writer
 
 Generate unique, high-converting, and SEO-optimized WooCommerce product descriptions using Anthropic Claude AI.
 

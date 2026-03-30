@@ -1,12 +1,13 @@
 <?php
 /**
  * Plugin Name: Giga AI Product Writer for WooCommerce
- * Plugin URI: https://gigaverse.io/plugins/giga-ai-product-writer
+ * Plugin URI: https://github.com/gigabittech/giga-ai-product-writer
  * Description: Claude-powered WooCommerce product description generator with quality scoring, brand voice training, and direct Yoast/Rank Math integration.
  * Version: 1.0.0
  * Requires at least: 6.0
  * Requires PHP: 8.0
- * Author: Roknuzzaman Sajib
+ * Author: Gigabit
+ * Author URI: https://github.com/gigabittech/giga-ai-product-writer
  * License: GPL v2 or later
  * Text Domain: giga-ai-product-writer
  * Domain Path: /languages
@@ -14,7 +15,7 @@
  * WC tested up to: 9.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
@@ -52,14 +53,16 @@ require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-license.php';
 require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-ajax.php';
 
 add_action('plugins_loaded', 'giga_apw_check_wc_active', 9);
-function giga_apw_check_wc_active() {
-    if ( ! class_exists( 'WooCommerce' ) ) {
+function giga_apw_check_wc_active()
+{
+    if (!class_exists('WooCommerce')) {
         add_action('admin_notices', 'giga_apw_wc_missing_notice');
         return;
     }
 }
 
-function giga_apw_wc_missing_notice() {
+function giga_apw_wc_missing_notice()
+{
     echo '<div class="error"><p>' . esc_html__('Giga AI Product Writer requires WooCommerce to be installed and active.', 'giga-ai-product-writer') . '</p></div>';
 }
 
@@ -68,7 +71,8 @@ add_action('plugins_loaded', ['Giga_APW_Core', 'get_instance'], 10);
 register_activation_hook(__FILE__, 'giga_apw_activate');
 register_deactivation_hook(__FILE__, 'giga_apw_deactivate');
 
-function giga_apw_activate() {
+function giga_apw_activate()
+{
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
     $table_name = $wpdb->prefix . 'giga_apw_generations';
@@ -123,6 +127,7 @@ function giga_apw_activate() {
     }
 }
 
-function giga_apw_deactivate() {
+function giga_apw_deactivate()
+{
     wp_clear_scheduled_hook('giga_apw_process_bulk');
 }
