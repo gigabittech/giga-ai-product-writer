@@ -23,9 +23,10 @@ define('GIGA_APW_VERSION', '1.0.0');
 define('GIGA_APW_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GIGA_APW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GIGA_APW_PLUGIN_FILE', __FILE__);
-define('GIGA_APW_CLAUDE_MODEL', 'claude-sonnet-4-20250514');
-define('GIGA_APW_CLAUDE_MAX_TOKENS', 2500);
-define('GIGA_APW_CLAUDE_TEMPERATURE', 0.7);
+define('GIGA_APW_DEFAULT_PROVIDER', 'claude');
+define('GIGA_APW_DEFAULT_MODEL', 'claude-sonnet-4-5');
+define('GIGA_APW_DEFAULT_TEMPERATURE', 0.7);
+define('GIGA_APW_DEFAULT_MAX_TOKENS', 2048);
 define('GIGA_APW_FREE_LIMIT', 5);
 define('GIGA_APW_BULK_MAX', 50);
 define('GIGA_APW_BULK_BATCH_SIZE', 3);
@@ -40,6 +41,7 @@ define('GIGA_APW_API_ENDPOINT', 'https://api.anthropic.com/v1/messages');
 define('GIGA_APW_LICENSE_SERVER', 'https://gigaverse.io/api/license');
 
 require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-core.php';
+require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-ai-client.php';
 require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-claude.php';
 require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-prompt.php';
 require_once GIGA_APW_PLUGIN_DIR . 'includes/class-giga-apw-generator.php';
@@ -114,6 +116,20 @@ function giga_apw_activate()
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 
+    // Set default options for new provider system
+    if (!get_option('giga_ai_provider')) {
+        update_option('giga_ai_provider', GIGA_APW_DEFAULT_PROVIDER);
+    }
+    if (!get_option('giga_ai_model')) {
+        update_option('giga_ai_model', GIGA_APW_DEFAULT_MODEL);
+    }
+    if (!get_option('giga_ai_api_key')) {
+        update_option('giga_ai_api_key', '');
+    }
+    if (!get_option('giga_ollama_base_url')) {
+        update_option('giga_ollama_base_url', 'http://localhost:11434');
+    }
+    
     if (!get_option('giga_apw_settings')) {
         update_option('giga_apw_settings', [
             'default_language' => 'en',
@@ -122,7 +138,8 @@ function giga_apw_activate()
             'quality_gate_threshold' => GIGA_APW_QUALITY_GATE,
             'min_words' => GIGA_APW_MIN_WORDS,
             'max_words' => GIGA_APW_MAX_WORDS,
-            'auto_save_draft' => 0
+            'auto_save_draft' => 0,
+            'temperature' => GIGA_APW_DEFAULT_TEMPERATURE
         ]);
     }
 }

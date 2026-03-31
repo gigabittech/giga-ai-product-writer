@@ -21,6 +21,12 @@ class Giga_APW_Ajax {
         add_action('wp_ajax_giga_apw_revert', [$this, 'revert']);
         add_action('wp_ajax_giga_apw_activate_license', [$this, 'activate_license']);
         add_action('wp_ajax_giga_apw_deactivate_license', [$this, 'deactivate_license']);
+        
+        // New AJAX handlers for multi-provider system
+        add_action('wp_ajax_giga_test_connection', [$this, 'test_connection_new']);
+        add_action('wp_ajax_giga_save_settings', [$this, 'save_settings']);
+        add_action('wp_ajax_giga_get_models', [$this, 'get_models']);
+        add_action('wp_ajax_giga_activate_license', [$this, 'activate_license']);
     }
 
     public function test_connection() {
@@ -191,5 +197,179 @@ class Giga_APW_Ajax {
 
         Giga_APW_License::get_instance()->deactivate();
         wp_send_json_success(['message' => __('License deactivated.', 'giga-ai-product-writer')]);
+    }
+    
+    /**
+     * New test connection method using unified AI client
+     */
+    public function test_connection_new() {
+        check_ajax_referer('giga_apw_nonce', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
+        }
+
+        $client = Giga_AI_Client::get_instance();
+        $result = $client->test_connection();
+
+        if (isset($result['error'])) {
+            wp_send_json_error(['message' => $result['error']]);
+        }
+
+        wp_send_json_success($result);
+    }
+    
+    /**
+     * Save all settings via AJAX
+     */
+    public function save_settings() {
+        check_ajax_referer('giga_apw_settings_nonce', 'giga_apw_settings_nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
+        }
+
+        // Get provider data
+        $provider = sanitize_text_field($_POST['giga_ai_provider'] ?? 'claude');
+        $api_key = sanitize_text_field($_POST['giga_ai_api_key'] ?? '');
+        $model = sanitize_text_field($_POST['giga_ai_model'] ?? '');
+        
+        // Get settings data
+        $settings = isset($_POST['giga_apw_settings']) && is_array($_POST['giga_apw_settings'])
+            ? $this->sanitize_settings($_POST['giga_apw_settings']) : [];
+        
+        // Save provider data
+        update_option('giga_ai_provider', $provider);
+        
+        // Encrypt and save API key (if provided and not for Ollama)
+        if (!empty($api_key) && $provider !== 'ollama') {
+            $encrypted = $this->encrypt_api_key($api_key);
+            update_option('giga_ai_api_key', $encrypted);
+        } elseif ($provider === 'ollama') {
+            // For Ollama, save base URL instead of API key
+            $base_url = sanitize_text_field($_POST['giga_ollama_base_url'] ?? 'http://localhost:11434');
+            update_option('giga_ollama_base_url', $base_url);
+        }
+        
+        // Save model
+        if (!empty($model)) {
+            update_option('giga_ai_model', $model);
+        }
+        
+        // Save settings
+        update_option('giga_apw_settings', $settings);
+        
+        wp_send_json_success([
+            'message' => __('Settings saved successfully.', 'giga-ai-product-writer'),
+            'provider' => $provider,
+            'model' => $model
+        ]);
+    }
+    
+    /**
+     * Get available models for selected provider
+     */
+    public function get_models() {
+        check_ajax_referer('giga_apw_nonce', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
+        }
+
+        $provider = sanitize_text_field($_POST['provider'] ?? 'claude');
+        $client = Giga_AI_Client::get_instance();
+        $models = $client->get_available_models();
+        
+        $formatted_models = [];
+        foreach ($models as $model_key => $model) {
+            $formatted_models[] = [
+                'name' => $model_key,
+                'label' => $model['label']
+            ];
+        }
+        
+        wp_send_json_success(['models' => $formatted_models]);
+    }
+    
+    /**
+     * Sanitize settings data
+     */
+    private function sanitize_settings($settings) {
+        $sanitized = [];
+        
+        if (isset($settings['default_language'])) {
+            $sanitized['default_language'] = sanitize_text_field($settings['default_language']);
+        }
+        
+        if (isset($settings['default_tone'])) {
+            $sanitized['default_tone'] = sanitize_text_field($settings['default_tone']);
+        }
+        
+        if (isset($settings['use_quality_gate'])) {
+            $sanitized['use_quality_gate'] = $settings['use_quality_gate'] ? 1 : 0;
+        }
+        
+        if (isset($settings['quality_gate_threshold'])) {
+            $sanitized['quality_gate_threshold'] = absint($settings['quality_gate_threshold']);
+        }
+        
+        if (isset($settings['min_words'])) {
+            $sanitized['min_words'] = absint($settings['min_words']);
+        }
+        
+        if (isset($settings['max_words'])) {
+            $sanitized['max_words'] = absint($settings['max_words']);
+        }
+        
+        if (isset($settings['short_min_words'])) {
+            $sanitized['short_min_words'] = absint($settings['short_min_words']);
+        }
+        
+        if (isset($settings['short_max_words'])) {
+            $sanitized['short_max_words'] = absint($settings['short_max_words']);
+        }
+        
+        if (isset($settings['auto_save_draft'])) {
+            $sanitized['auto_save_draft'] = $settings['auto_save_draft'] ? 1 : 0;
+        }
+        
+        if (isset($settings['generate_seo'])) {
+            $sanitized['generate_seo'] = $settings['generate_seo'] ? 1 : 0;
+        }
+        
+        if (isset($settings['include_focus_keyword'])) {
+            $sanitized['include_focus_keyword'] = $settings['include_focus_keyword'] ? 1 : 0;
+        }
+        
+        if (isset($settings['include_specs'])) {
+            $sanitized['include_specs'] = $settings['include_specs'] ? 1 : 0;
+        }
+        
+        if (isset($settings['generate_tags'])) {
+            $sanitized['generate_tags'] = $settings['generate_tags'] ? 1 : 0;
+        }
+        
+        if (isset($settings['max_tags'])) {
+            $sanitized['max_tags'] = absint($settings['max_tags']);
+        }
+        
+        if (isset($settings['temperature'])) {
+            $sanitized['temperature'] = floatval($settings['temperature']);
+        }
+        
+        return $sanitized;
+    }
+    
+    /**
+     * Encrypt API key
+     */
+    private function encrypt_api_key($key) {
+        if (empty($key)) {
+            return '';
+        }
+        $key = wp_generate_password(64, true, true);
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+        $encrypted = openssl_encrypt($key, 'aes-256-cbc', wp_salt(), 0, $iv);
+        return base64_encode($encrypted . '::' . $iv);
     }
 }
