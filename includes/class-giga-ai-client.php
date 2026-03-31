@@ -36,6 +36,8 @@ class Giga_AI_Client {
                 return $this->call_gemini($prompt, $system_prompt, $api_key, $model);
             case 'groq':
                 return $this->call_groq($prompt, $system_prompt, $api_key, $model);
+            case 'zai':
+                return $this->call_zai($prompt, $system_prompt, $api_key, $model);
             case 'ollama':
                 return $this->call_ollama($prompt, $system_prompt, $model);
             default:
@@ -50,15 +52,52 @@ class Giga_AI_Client {
      */
     public function test_connection() {
         $start = microtime(true);
-        $result = $this->generate('Say "OK" and nothing else.', 'You are a helpful assistant.');
+        $provider = get_option('giga_ai_provider', 'claude');
+        $model = get_option('giga_ai_model', 'claude-sonnet-4-5');
+        $api_key = $this->get_decrypted_key();
+        
+        // Log the test attempt with detailed debugging
+        error_log("Giga AI: Testing connection for provider: {$provider}, model: {$model}");
+        error_log("Giga AI: API key length: " . (empty($api_key) ? 0 : strlen($api_key)));
+        
+        // Validate required parameters
+        if ($provider !== 'ollama' && empty($api_key)) {
+            error_log("Giga AI Error: API key required for provider: {$provider}");
+            return ['success' => false, 'error' => 'API key is required for ' . ucfirst($provider)];
+        }
+        
+        // Use specific test based on provider
+        switch ($provider) {
+            case 'claude':
+                $result = $this->test_claude_connection($api_key, $model);
+                break;
+            case 'openai':
+                $result = $this->test_openai_connection($api_key, $model);
+                break;
+            case 'gemini':
+                $result = $this->test_gemini_connection($api_key, $model);
+                break;
+            case 'groq':
+                $result = $this->test_groq_connection($api_key, $model);
+                break;
+            case 'zai':
+                $result = $this->test_zai_connection($api_key, $model);
+                break;
+            case 'ollama':
+                $result = $this->test_ollama_connection($model);
+                break;
+            default:
+                $result = ['error' => 'Unknown provider: ' . $provider];
+        }
+        
         $time = round((microtime(true) - $start) * 1000);
         
         if (isset($result['error'])) {
+            error_log("Giga AI Connection Error: " . $result['error']);
             return ['success' => false, 'error' => $result['error']];
         }
         
-        $provider = get_option('giga_ai_provider', 'claude');
-        $model = get_option('giga_ai_model', 'claude-sonnet-4-5');
+        error_log("Giga AI Connection Success: Provider {$provider}, Model {$model}, Latency {$time}ms");
         
         return [
             'success' => true, 
@@ -96,6 +135,11 @@ class Giga_AI_Client {
                 'llama-3.3-70b-versatile' => ['name' => 'llama-3.3-70b-versatile', 'label' => 'Recommended ★'],
                 'mixtral-8x7b-32768' => ['name' => 'mixtral-8x7b-32768', 'label' => 'Mixtral 8x7B'],
                 'gemma2-9b-it' => ['name' => 'gemma2-9b-it', 'label' => 'Gemma 2 9B']
+            ],
+            'zai' => [
+                'z-pro' => ['name' => 'z-pro', 'label' => 'z-pro (Recommended ★)'],
+                'z-fast' => ['name' => 'z-fast', 'label' => 'z-fast'],
+                'z-mini' => ['name' => 'z-mini', 'label' => 'z-mini']
             ],
             'ollama' => [
                 'llama3' => ['name' => 'llama3', 'label' => 'Llama 3'],
@@ -260,6 +304,232 @@ class Giga_AI_Client {
         }
         
         return ['text' => $body['response']];
+    }
+    
+    /**
+     * Call Z.ai API (OpenAI-compatible)
+     */
+    private function call_zai($prompt, $system, $key, $model) {
+        $response = wp_remote_post('https://api.z.ai/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $key,
+                'Content-Type' => 'application/json',
+            ],
+            'body' => json_encode([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $system],
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'max_tokens' => 2048,
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (isset($body['error'])) {
+            return ['error' => $body['error']['message'] ?? 'Unknown Z.ai API error'];
+        }
+        
+        if (!isset($body['choices'][0]['message']['content'])) {
+            return ['error' => 'Invalid response format from Z.ai API'];
+        }
+        
+        return ['text' => $body['choices'][0]['message']['content']];
+    }
+    
+    /**
+     * Test Claude connection
+     */
+    private function test_claude_connection($key, $model) {
+        error_log("Giga AI: Testing Claude connection with model: {$model}");
+        
+        $response = wp_remote_post('https://api.anthropic.com/v1/messages', [
+            'headers' => [
+                'x-api-key' => $key,
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ],
+            'body' => json_encode([
+                'model' => $model,
+                'max_tokens' => 10,
+                'messages' => [['role' => 'user', 'content' => 'Hi']]
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) {
+            $error_msg = $response->get_error_message();
+            error_log("Giga AI Claude Error: " . $error_msg);
+            return ['error' => 'Claude API Error: ' . $error_msg];
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        error_log("Giga AI Claude Response Code: {$response_code}");
+        error_log("Giga AI Claude Response Body: " . json_encode($body));
+        
+        if ($response_code !== 200) {
+            $error_msg = isset($body['error']['message']) ? $body['error']['message'] : 'HTTP Error ' . $response_code;
+            error_log("Giga AI Claude Error: " . $error_msg);
+            return ['error' => 'Claude API Error: ' . $error_msg];
+        }
+        
+        if (!isset($body['content'][0]['text'])) {
+            error_log("Giga AI Claude Error: Invalid response format");
+            return ['error' => 'Invalid response format from Claude API'];
+        }
+        
+        return ['success' => true];
+    }
+    
+    /**
+     * Test OpenAI connection
+     */
+    private function test_openai_connection($key, $model) {
+        $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $key,
+                'Content-Type' => 'application/json',
+            ],
+            'body' => json_encode([
+                'model' => $model,
+                'max_tokens' => 10,
+                'messages' => [['role' => 'user', 'content' => 'Hi']]
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (isset($body['error'])) {
+            return ['error' => $body['error']['message'] ?? 'OpenAI API error'];
+        }
+        
+        if (!isset($body['choices'][0]['message']['content'])) {
+            return ['error' => 'Invalid response format from OpenAI'];
+        }
+        
+        return ['success' => true];
+    }
+    
+    /**
+     * Test Gemini connection
+     */
+    private function test_gemini_connection($key, $model) {
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}";
+        $response = wp_remote_post($url, [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => json_encode([
+                'contents' => [['parts' => [['text' => 'Hi']]]],
+                'generationConfig' => ['maxOutputTokens' => 10]
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (isset($body['error'])) {
+            return ['error' => $body['error']['message'] ?? 'Gemini API error'];
+        }
+        
+        if (!isset($body['candidates'][0]['content']['parts'][0]['text'])) {
+            return ['error' => 'Invalid response format from Gemini'];
+        }
+        
+        return ['success' => true];
+    }
+    
+    /**
+     * Test Groq connection
+     */
+    private function test_groq_connection($key, $model) {
+        $response = wp_remote_post('https://api.groq.com/openai/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $key,
+                'Content-Type' => 'application/json',
+            ],
+            'body' => json_encode([
+                'model' => $model,
+                'max_tokens' => 10,
+                'messages' => [['role' => 'user', 'content' => 'Hi']]
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (isset($body['error'])) {
+            return ['error' => $body['error']['message'] ?? 'Groq API error'];
+        }
+        
+        if (!isset($body['choices'][0]['message']['content'])) {
+            return ['error' => 'Invalid response format from Groq'];
+        }
+        
+        return ['success' => true];
+    }
+    
+    /**
+     * Test Z.ai connection
+     */
+    private function test_zai_connection($key, $model) {
+        $response = wp_remote_post('https://api.z.ai/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $key,
+                'Content-Type' => 'application/json',
+            ],
+            'body' => json_encode([
+                'model' => $model,
+                'max_tokens' => 10,
+                'messages' => [['role' => 'user', 'content' => 'Hi']]
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (isset($body['error'])) {
+            return ['error' => $body['error']['message'] ?? 'Z.ai API error'];
+        }
+        
+        if (!isset($body['choices'][0]['message']['content'])) {
+            return ['error' => 'Invalid response format from Z.ai'];
+        }
+        
+        return ['success' => true];
+    }
+    
+    /**
+     * Test Ollama connection
+     */
+    private function test_ollama_connection($model) {
+        $base_url = get_option('giga_ollama_base_url', 'http://localhost:11434');
+        $response = wp_remote_post($base_url . '/api/generate', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => json_encode([
+                'model' => $model,
+                'prompt' => 'Hi',
+                'stream' => false,
+            ]),
+            'timeout' => 30,
+        ]);
+        
+        if (is_wp_error($response)) return ['error' => $response->get_error_message()];
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if (!isset($body['response'])) {
+            return ['error' => 'Invalid response format from Ollama'];
+        }
+        
+        return ['success' => true];
     }
     
     /**

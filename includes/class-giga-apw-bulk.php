@@ -28,17 +28,39 @@ class Giga_APW_Bulk {
         if (!current_user_can('manage_woocommerce')) wp_send_json_error([], 403);
 
         $category_id = isset($_POST['category_id']) ? intval($_POST['category_id']) : 0;
+        $filter_type = isset($_POST['filter_type']) ? sanitize_text_field($_POST['filter_type']) : 'all';
         
-        $args = ['status' => 'publish', 'limit' => 50, 'return' => 'ids'];
-        if ($category_id > 0) $args['category'] = [get_term($category_id, 'product_cat')->slug];
+        $args = ['status' => 'publish', 'limit' => 200, 'return' => 'ids'];
+        if ($category_id > 0) {
+            $cat = get_term($category_id, 'product_cat');
+            if ($cat) $args['category'] = [$cat->slug];
+        }
 
-        $products = wc_get_products($args);
-        wp_send_json_success(['count' => count($products), 'ids' => $products]);
+        $all_ids = wc_get_products($args);
+        $final_ids = [];
+
+        if ($filter_type === 'thin') {
+            foreach ($all_ids as $id) {
+                $product = wc_get_product($id);
+                $content = wp_strip_all_tags($product->get_description() . ' ' . $product->get_short_description());
+                $word_count = count(preg_split('/\s+/', trim($content), -1, PREG_SPLIT_NO_EMPTY));
+                
+                if ($word_count < 50) {
+                    $final_ids[] = $id;
+                }
+                
+                if (count($final_ids) >= 50) break; // Limit to 50 as per PRD
+            }
+        } else {
+            $final_ids = array_slice($all_ids, 0, 50);
+        }
+
+        wp_send_json_success(['ids' => $final_ids, 'count' => count($final_ids)]);
     }
 
     public function ajax_start_job() {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        if (!current_user_can('manage_woocommerce')) wp_send_json_error([], 403);
+        if (!current_user_can('edit_products')) wp_send_json_error();
         if (!Giga_APW_License::get_instance()->is_pro()) {
             wp_send_json_error(['message' => 'Pro license required for bulk operations.']);
         }
@@ -47,10 +69,11 @@ class Giga_APW_Bulk {
         if (empty($ids)) wp_send_json_error(['message' => 'No products selected.']);
 
         $options = [
-            'tone' => sanitize_text_field($_POST['tone'] ?? ''),
-            'language' => sanitize_text_field($_POST['language'] ?? ''),
-            'use_brand_voice' => isset($_POST['use_brand_voice']) && $_POST['use_brand_voice'] === 'true',
             'auto_publish' => isset($_POST['auto_publish']) && $_POST['auto_publish'] === 'true',
+            'tone' => sanitize_text_field($_POST['tone'] ?? ''),
+            'language' => sanitize_text_field($_POST['language'] ?? 'en'),
+            'use_brand_voice' => isset($_POST['use_brand_voice']) && $_POST['use_brand_voice'] === 'true',
+            'filter_type' => sanitize_text_field($_POST['filter_type'] ?? 'all'),
         ];
 
         $job = [

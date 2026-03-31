@@ -113,12 +113,12 @@ $default_language = $settings['default_language'] ?? 'en';
         <div id="giga-apw-panels-container"></div>
         
         <!-- ACTION BAR -->
-        <div class="giga-apw-action-bar" style="margin-top: 20px; padding: 10px; background: #f0f0f1; border-top: 1px solid #ccd0d4; display: flex; justify-content: space-between; align-items: center;">
+        <div class="giga-apw-action-bar" style="display: flex; justify-content: space-between; align-items: center;">
             <label><input type="checkbox" id="giga-apw-select-all" checked> <?php _e('Select All', 'giga-ai-product-writer'); ?></label>
-            <div>
-                <button type="button" id="giga-apw-history-btn" class="button button-link"><?php _e('Version History', 'giga-ai-product-writer'); ?></button>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="button" id="giga-apw-history-btn" class="button-link"><?php _e('Version History', 'giga-ai-product-writer'); ?></button>
                 <button type="button" id="giga-apw-regen-btn" class="button button-secondary"><?php _e('Regenerate', 'giga-ai-product-writer'); ?></button>
-                <button type="button" id="giga-apw-publish-btn" class="button button-primary"><?php printf(__('Publish Approved (%s)', 'giga-ai-product-writer'), '<span id="giga-apw-approved-count">6</span>'); ?></button>
+                <button type="button" id="giga-apw-publish-btn" class="giga-apw-button-primary"><?php printf(__('Publish Approved (%s)', 'giga-ai-product-writer'), '<span id="giga-apw-approved-count">6</span>'); ?></button>
             </div>
         </div>
     </div>

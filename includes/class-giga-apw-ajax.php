@@ -21,6 +21,7 @@ class Giga_APW_Ajax {
         add_action('wp_ajax_giga_apw_revert', [$this, 'revert']);
         add_action('wp_ajax_giga_apw_activate_license', [$this, 'activate_license']);
         add_action('wp_ajax_giga_apw_deactivate_license', [$this, 'deactivate_license']);
+        add_action('wp_ajax_giga_apw_get_current_content', [$this, 'get_current_content']);
         
         // New AJAX handlers for multi-provider system
         add_action('wp_ajax_giga_test_connection', [$this, 'test_connection_new']);
@@ -197,6 +198,29 @@ class Giga_APW_Ajax {
 
         Giga_APW_License::get_instance()->deactivate();
         wp_send_json_success(['message' => __('License deactivated.', 'giga-ai-product-writer')]);
+    }
+
+    public function get_current_content() {
+        check_ajax_referer('giga_apw_nonce', 'nonce');
+        
+        $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+        if (!$product_id) wp_send_json_error();
+
+        $product = wc_get_product($product_id);
+        if (!$product) wp_send_json_error();
+
+        $seo_class = class_exists('Giga_APW_SEO') ? Giga_APW_SEO::get_instance() : null;
+        $meta = $seo_class ? $seo_class->read_existing_meta($product_id) : [];
+
+        $tags = wp_get_post_terms($product_id, 'product_tag', ['fields' => 'names']);
+
+        wp_send_json_success([
+            'description' => $product->get_description(),
+            'short_description' => $product->get_short_description(),
+            'meta_title' => $meta['meta_title'] ?? '',
+            'meta_description' => $meta['meta_description'] ?? '',
+            'tags' => is_array($tags) ? $tags : []
+        ]);
     }
     
     /**

@@ -136,53 +136,104 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function simpleDiff(oldText, newText) {
+        if (!oldText) return newText;
+        if (!newText) return '';
+
+        const oldWords = oldText.split(/\s+/);
+        const newWords = newText.split(/\s+/);
+        let result = '';
+
+        const oldSet = new Set(oldWords);
+        
+        newWords.forEach(word => {
+            if (oldSet.has(word)) {
+                result += word + ' ';
+            } else {
+                result += `<span class="giga-diff-add">${word}</span> `;
+            }
+        });
+
+        return result.trim();
+    }
+
     function renderPanels(content) {
         const container = document.getElementById('giga-apw-panels-container');
         container.innerHTML = '';
 
-        const fields = [
-            { id: 'long_description', label: 'Long Description', content: content.long_description },
-            { id: 'short_description', label: 'Short Description', content: content.short_description },
-            { id: 'meta_title', label: 'Meta Title', content: content.meta_title },
-            { id: 'meta_description', label: 'Meta Description', content: content.meta_description },
-            { id: 'tags', label: 'Tags', content: (content.tags || []).join(', ') },
-            { id: 'alt_text', label: 'Image Alts', content: (content.alt_texts || []).join(', ') }
-        ];
+        const productId = document.getElementById('post_ID')?.value;
+        const formData = new FormData();
+        formData.append('action', 'giga_apw_get_current_content');
+        formData.append('nonce', giga_apw_data.nonce);
+        formData.append('product_id', productId);
 
-        let count = 0;
-        fields.forEach(f => {
-            if (!f.content) return;
-            count++;
-            
-            const div = document.createElement('div');
-            div.className = 'giga-apw-panel';
-            div.style.border = '1px solid #ccd0d4';
-            div.style.marginBottom = '10px';
-            div.style.padding = '10px';
-            
-            const header = document.createElement('div');
-            header.innerHTML = `
-                <label>
-                    <input type="checkbox" class="giga-apw-field-checkbox" value="${f.id}" checked>
-                    <strong>${f.label}</strong>
-                </label>
-            `;
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.style.marginTop = '10px';
-            contentDiv.style.background = '#f9f9f9';
-            contentDiv.style.padding = '10px';
-            contentDiv.innerHTML = typeof f.content === 'string' ? f.content.replace(/\n/g, '<br>') : JSON.stringify(f.content);
+        fetch(giga_apw_data.ajax_url, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(currentData => {
+            const current = currentData.data || {};
+            const fields = [
+                { id: 'long_description', label: 'Long Description', content: content.long_description, current: current.description },
+                { id: 'short_description', label: 'Short Description', content: content.short_description, current: current.short_description },
+                { id: 'meta_title', label: 'Meta Title', content: content.meta_title, current: current.meta_title },
+                { id: 'meta_description', label: 'Meta Description', content: content.meta_description, current: current.meta_description },
+                { id: 'tags', label: 'Tags', content: (content.tags || []).join(', '), current: (current.tags || []).join(', ') },
+                { id: 'alt_text', label: 'Image Alts', content: (content.alt_texts || []).join(', '), current: '' }
+            ];
 
-            div.appendChild(header);
-            div.appendChild(contentDiv);
-            container.appendChild(div);
-        });
+            let count = 0;
+            fields.forEach(f => {
+                if (!f.content) return;
+                count++;
+                
+                const div = document.createElement('div');
+                div.className = 'giga-apw-preview-box';
+                
+                const header = document.createElement('div');
+                header.className = 'giga-apw-preview-header';
+                header.innerHTML = `
+                    <label>
+                        <input type="checkbox" class="giga-apw-field-checkbox" value="${f.id}" checked>
+                        <strong>${f.label}</strong>
+                    </label>
+                `;
+                
+                const grid = document.createElement('div');
+                grid.className = 'giga-apw-preview-grid';
+                
+                const currentCol = document.createElement('div');
+                currentCol.className = 'giga-apw-preview-col current';
+                const currentHtml = f.current ? f.current.substring(0, 300) + (f.current.length > 300 ? '...' : '') : '<em style="color:#94a3b8">Empty</em>';
+                currentCol.innerHTML = `
+                    <div class="col-label">CURRENT</div>
+                    <div class="col-content">${currentHtml}</div>
+                `;
+                
+                const generatedCol = document.createElement('div');
+                generatedCol.className = 'giga-apw-preview-col generated';
+                
+                // For long description, we don't do full word-diff as it might be messy with HTML
+                let generatedHtml = f.content;
+                if (f.id !== 'long_description' && f.current) {
+                    generatedHtml = simpleDiff(f.current, f.content);
+                }
 
-        document.getElementById('giga-apw-approved-count').textContent = count;
-        
-        document.querySelectorAll('.giga-apw-field-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateApprovedCount);
+                generatedCol.innerHTML = `
+                    <div class="col-label">GENERATED (NEW)</div>
+                    <div class="col-content">${generatedHtml}</div>
+                `;
+                
+                grid.appendChild(currentCol);
+                grid.appendChild(generatedCol);
+                
+                div.appendChild(header);
+                div.appendChild(grid);
+                container.appendChild(div);
+            });
+
+            document.getElementById('giga-apw-approved-count').textContent = count;
+            document.querySelectorAll('.giga-apw-field-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateApprovedCount);
+            });
         });
     }
 
@@ -402,6 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bulkStartBtn) {
         bulkStartBtn.addEventListener('click', function() {
             const categoryId = document.getElementById('giga_apw_bulk_category').value;
+            const filterType = document.getElementById('giga_apw_bulk_filter').value;
             const autoPublish = document.getElementById('giga_apw_bulk_auto_publish').checked;
             const tone = document.getElementById('giga_apw_bulk_tone').value;
             const language = document.getElementById('giga_apw_bulk_language').value;
@@ -415,6 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
             getIdsForm.append('action', 'giga_apw_bulk_get_counts');
             getIdsForm.append('nonce', giga_apw_data.nonce);
             getIdsForm.append('category_id', categoryId);
+            getIdsForm.append('filter_type', filterType);
 
             fetch(giga_apw_data.ajax_url, { method: 'POST', body: getIdsForm })
             .then(r => r.json())
@@ -425,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     startData.append('action', 'giga_apw_bulk_start_job');
                     startData.append('nonce', giga_apw_data.nonce);
                     data.data.ids.forEach(id => startData.append('product_ids[]', id));
+                    startData.append('filter_type', filterType);
                     startData.append('auto_publish', autoPublish);
                     startData.append('tone', tone);
                     startData.append('language', language);

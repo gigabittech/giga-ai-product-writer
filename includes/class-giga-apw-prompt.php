@@ -1,28 +1,50 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
-class Giga_APW_Prompt {
+class Giga_APW_Prompt
+{
     private static $instance = null;
 
-    public static function get_instance() {
-        if ( null === self::$instance ) {
+    public static function get_instance()
+    {
+        if (null === self::$instance) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
-    public function build_system_prompt($brand_voice_profile = null) {
+    public function build_system_prompt($brand_voice_profile = null)
+    {
         $banned_phrases = [
-            "game-changer", "elevate your", "seamlessly", "in today's fast-paced world",
-            "look no further", "designed with you in mind", "take your X to the next level",
-            "whether you're a seasoned pro or just starting out", "unlock the power of",
-            "redefine the way you", "revolutionize", "cutting-edge", "state-of-the-art",
-            "robust solution", "leverage", "synergy", "paradigm shift", "best-in-class",
-            "world-class", "next-level", "game changer", "move the needle", "deep dive"
+            "game-changer",
+            "elevate your",
+            "seamlessly",
+            "in today's fast-paced world",
+            "look no further",
+            "designed with you in mind",
+            "take your X to the next level",
+            "whether you're a seasoned pro or just starting out",
+            "unlock the power of",
+            "redefine the way you",
+            "revolutionize",
+            "cutting-edge",
+            "state-of-the-art",
+            "robust solution",
+            "leverage",
+            "synergy",
+            "paradigm shift",
+            "best-in-class",
+            "world-class",
+            "next-level",
+            "game changer",
+            "move the needle",
+            "deep dive"
         ];
 
         $prompt = "You are an expert WooCommerce product copywriter. Your goal is to write natural, human-sounding product descriptions that convert well and rank high in search engines.\n\n";
@@ -40,7 +62,7 @@ class Giga_APW_Prompt {
             $prompt .= "Sentences should be {$brand_voice_profile['avg_sentence_length']}. ";
             $prompt .= "{$brand_voice_profile['formatting_style']}. ";
             $prompt .= "Write from the {$brand_voice_profile['perspective']} perspective. ";
-            
+
             if (!empty($brand_voice_profile['key_patterns'])) {
                 $prompt .= "Emulate these patterns: " . implode(', ', $brand_voice_profile['key_patterns']) . ". ";
             }
@@ -54,7 +76,8 @@ class Giga_APW_Prompt {
         return $prompt;
     }
 
-    public function build_user_prompt($product_data, $settings) {
+    public function build_user_prompt($product_data, $settings)
+    {
         $min_words = $settings['min_words'];
         $max_words = $settings['max_words'];
         $language = $product_data['language'] ?? $settings['default_language'];
@@ -69,7 +92,8 @@ class Giga_APW_Prompt {
             $prompt .= "- Existing Short Description: " . wp_strip_all_tags($product_data['short_description']) . "\n";
         }
         if (!empty($product_data['attributes'])) {
-            $prompt .= "- Attributes: " . implode(', ', array_map(function($a) { return "{$a['name']}: {$a['value']}"; }, $product_data['attributes'])) . "\n";
+            $prompt .= "- Attributes: " . implode(', ', array_map(function ($a) {
+                return "{$a['name']}: {$a['value']}"; }, $product_data['attributes'])) . "\n";
         }
         $prompt .= "- Price: {$product_data['price']}\n";
         if (!empty($product_data['sale_price'])) {
@@ -97,7 +121,7 @@ class Giga_APW_Prompt {
         if (!empty($product_data['additional_instructions'])) {
             $prompt .= "- Additional Instructions: {$product_data['additional_instructions']}\n";
         }
-        
+
         $prompt .= "\nWrite all content in language code: {$language}\n";
         $prompt .= "Target Tone: {$tone}\n\n";
 
@@ -117,11 +141,13 @@ class Giga_APW_Prompt {
         $prompt .= "- short_description MUST be plain text only, no HTML.\n";
         $prompt .= "- tags must be lowercase, no special characters.\n";
         $prompt .= "- length of alt_texts array must match the number of images ({$product_data['image_count']}).\n";
+        $prompt .= "- Note for alt texts: Since direct image analysis is pending v1.2, generate highly descriptive, SEO-optimized alt text using the product title, features, and available attributes.\n";
 
         return $prompt;
     }
 
-    public function build_brand_voice_analysis_prompt($examples) {
+    public function build_brand_voice_analysis_prompt($examples)
+    {
         $prompt = "You are a brand voice analyst. Analyze the following product description examples and extract the brand's voice profile.\n\n";
         foreach ($examples as $index => $example) {
             $prompt .= "Example " . ($index + 1) . ":\n" . $example . "\n\n";

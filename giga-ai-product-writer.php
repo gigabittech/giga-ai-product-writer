@@ -8,7 +8,7 @@
  * Requires PHP: 8.0
  * Author: Gigabit
  * Author URI: https://github.com/gigabittech/giga-ai-product-writer
- * License: GPL v2 or later
+ * License: GPL v2 or later  
  * Text Domain: giga-ai-product-writer
  * Domain Path: /languages
  * WC requires at least: 7.0
@@ -129,7 +129,7 @@ function giga_apw_activate()
     if (!get_option('giga_ollama_base_url')) {
         update_option('giga_ollama_base_url', 'http://localhost:11434');
     }
-    
+
     if (!get_option('giga_apw_settings')) {
         update_option('giga_apw_settings', [
             'default_language' => 'en',

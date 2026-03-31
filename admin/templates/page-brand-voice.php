@@ -9,65 +9,100 @@ $profile = class_exists('Giga_APW_Voice') ? Giga_APW_Voice::get_instance()->get_
 ?>
 
 <div class="wrap giga-apw-wrap">
-    <h1><?php esc_html_e('Brand Voice Training (Pro)', 'giga-ai-product-writer'); ?></h1>
+    <div class="giga-apw-header">
+        <h1 class="giga-apw-title"><?php esc_html_e('Brand Voice', 'giga-ai-product-writer'); ?></h1>
+        <?php if ($is_pro): ?>
+            <span class="badge badge-pro">PRO UNLIMITED</span>
+        <?php endif; ?>
+    </div>
     
-    <p><?php esc_html_e('Train your brand voice — paste 3-5 example product descriptions below. Claude will analyze your tone, vocabulary, and style. All future generations will match.', 'giga-ai-product-writer'); ?></p>
+    <p class="giga-apw-description"><?php esc_html_e('Infuse your products with personality. Train Claude to understand your unique tone, vocabulary, and style in minutes.', 'giga-ai-product-writer'); ?></p>
 
     <div style="position:relative;">
         <?php if (!$is_pro): ?>
-            <div class="giga-apw-lock-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:10; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
-                <div class="giga-apw-lock-message" style="background:#fff; padding:30px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); text-align:center;">
-                    <h3 style="margin-top:0;"><span class="dashicons dashicons-lock"></span> <?php esc_html_e('Pro Feature', 'giga-ai-product-writer'); ?></h3>
+            <div class="giga-apw-lock-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; display:flex; align-items:center; justify-content:center;">
+                <div class="giga-apw-lock-message">
+                    <h3><span class="dashicons dashicons-lock"></span> <?php esc_html_e('Pro Feature', 'giga-ai-product-writer'); ?></h3>
                     <p><?php esc_html_e('Upgrade to Pro to train your custom brand voice.', 'giga-ai-product-writer'); ?></p>
-                    <a href="<?php echo admin_url('admin.php?page=giga-apw'); ?>" class="button button-primary"><?php esc_html_e('Upgrade / Enter License', 'giga-ai-product-writer'); ?></a>
+                    <a href="<?php echo admin_url('admin.php?page=giga-apw'); ?>" class="giga-apw-button-primary"><?php esc_html_e('Upgrade / Enter License', 'giga-ai-product-writer'); ?></a>
                 </div>
             </div>
         <?php endif; ?>
 
-        <div class="giga-apw-voice-container <?php echo !$is_pro ? 'giga-apw-blurred' : ''; ?>" style="<?php echo !$is_pro ? 'opacity:0.3; pointer-events:none;' : ''; ?>">
+        <div class="giga-apw-voice-container <?php echo !$is_pro ? 'giga-apw-blurred' : ''; ?>" style="<?php echo !$is_pro ? 'pointer-events:none;' : ''; ?>">
             <?php if ($profile): ?>
-                <div class="giga-apw-voice-profile card" style="max-width:800px; padding:20px;">
-                    <h2 style="margin-top:0;"><?php esc_html_e('Active Voice Profile', 'giga-ai-product-writer'); ?></h2>
-                    <p><strong><?php esc_html_e('Detected Tone:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html($profile['tone'] ?? ''); ?></p>
-                    <p><strong><?php esc_html_e('Vocabulary Level:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html($profile['vocabulary_level'] ?? ''); ?></p>
-                    <p><strong><?php esc_html_e('Sentence Style:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html($profile['avg_sentence_length'] ?? ''); ?></p>
-                    <p><strong><?php esc_html_e('Formatting:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html($profile['formatting_style'] ?? ''); ?></p>
-                    <p><strong><?php esc_html_e('Perspective:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html($profile['perspective'] ?? ''); ?></p>
-                    
-                    <?php if (!empty($profile['brand_adjectives'])): ?>
-                        <p><strong><?php esc_html_e('Brand Keywords:', 'giga-ai-product-writer'); ?></strong> 
-                            <?php foreach ($profile['brand_adjectives'] as $adj): ?>
-                                <span class="giga-apw-chip" style="background:#f0f0f1; padding:3px 8px; border-radius:12px; margin-right:5px; font-size:12px;"><?php echo esc_html($adj); ?></span>
-                            <?php endforeach; ?>
-                        </p>
-                    <?php endif; ?>
+                <div class="giga-apw-card">
+                    <div class="giga-apw-section-title">
+                        <h3>🎙️ <?php esc_html_e('Active Voice Profile', 'giga-ai-product-writer'); ?></h3>
+                        <p><?php esc_html_e('Your products are being generated using this persona', 'giga-ai-product-writer'); ?></p>
+                    </div>
 
-                    <?php if (!empty($profile['avoid_patterns'])): ?>
-                        <p class="giga-apw-error-text" style="color:#d63638;"><strong>⚠️ <?php esc_html_e('Patterns to avoid:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html(implode(', ', $profile['avoid_patterns'])); ?></p>
-                    <?php endif; ?>
+                    <div class="giga-apw-voice-grid">
+                        <div class="giga-apw-voice-item">
+                            <strong><?php esc_html_e('Detected Tone', 'giga-ai-product-writer'); ?></strong>
+                            <span><?php echo esc_html($profile['tone'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="giga-apw-voice-item">
+                            <strong><?php esc_html_e('Vocabulary Level', 'giga-ai-product-writer'); ?></strong>
+                            <span><?php echo esc_html($profile['vocabulary_level'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="giga-apw-voice-item">
+                            <strong><?php esc_html_e('Sentence Style', 'giga-ai-product-writer'); ?></strong>
+                            <span><?php echo esc_html($profile['avg_sentence_length'] ?? 'N/A'); ?></span>
+                        </div>
+                    </div>
 
-                    <p style="margin-top:20px;">
-                        <button class="button button-secondary" id="giga-apw-clear-voice"><?php esc_html_e('Clear & Retrain', 'giga-ai-product-writer'); ?></button>
-                    </p>
+                    <div class="giga-apw-voice-details">
+                        <div class="giga-apw-field">
+                            <label><?php esc_html_e('Brand Adjectives', 'giga-ai-product-writer'); ?></label>
+                            <div class="giga-apw-chips">
+                                <?php if (!empty($profile['brand_adjectives'])): ?>
+                                    <?php foreach ($profile['brand_adjectives'] as $adj): ?>
+                                        <span class="giga-apw-chip"><?php echo esc_html($adj); ?></span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($profile['avoid_patterns'])): ?>
+                            <div class="giga-apw-field">
+                                <label><?php esc_html_e('Optimization Focus', 'giga-ai-product-writer'); ?></label>
+                                <div class="giga-apw-warning-box">
+                                    <strong>⚠️ <?php esc_html_e('Avoiding:', 'giga-ai-product-writer'); ?></strong> <?php echo esc_html(implode(', ', $profile['avoid_patterns'])); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="giga-apw-actions-bar">
+                        <button class="button giga-apw-button-secondary" id="giga-apw-clear-voice"><?php esc_html_e('Reset & Retrain', 'giga-ai-product-writer'); ?></button>
+                    </div>
                 </div>
             <?php else: ?>
-                <div class="giga-apw-voice-form card" style="max-width:800px; padding:20px;">
-                    <h2 style="margin-top:0;"><?php esc_html_e('Analyze New Voice', 'giga-ai-product-writer'); ?></h2>
+                <div class="giga-apw-card">
+                    <div class="giga-apw-section-title">
+                        <h3>📝 <?php esc_html_e('Train New Personality', 'giga-ai-product-writer'); ?></h3>
+                        <p><?php esc_html_e('Paste 3-5 high-quality product descriptions to analyze', 'giga-ai-product-writer'); ?></p>
+                    </div>
                     
-                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div class="giga-apw-field" style="margin-bottom:15px;">
-                            <label style="display:block; font-weight:600; margin-bottom:5px;"><?php printf(__('Example %d%s', 'giga-ai-product-writer'), $i, $i <= 3 ? ' *' : ''); ?></label>
-                            <textarea class="giga-apw-voice-example" <?php echo $i <= 3 ? 'required' : ''; ?> placeholder="<?php esc_attr_e('Paste a product description that represents your brand voice...', 'giga-ai-product-writer'); ?>" rows="4" style="width:100%"></textarea>
-                            <small class="giga-apw-word-count" style="color:#646970;">0 words</small>
-                        </div>
-                    <?php endfor; ?>
+                    <div class="giga-apw-voice-inputs">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <div class="giga-apw-field">
+                                <label><?php printf(__('Example %d%s', 'giga-ai-product-writer'), $i, $i <= 3 ? ' *' : ''); ?></label>
+                                <textarea class="giga-apw-voice-example giga-apw-textarea" <?php echo $i <= 3 ? 'required' : ''; ?> placeholder="<?php esc_attr_e('Paste an example description...', 'giga-ai-product-writer'); ?>"></textarea>
+                                <div class="field-footer">
+                                    <span class="giga-apw-word-count">0 words</span>
+                                </div>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
 
-                    <p style="margin-top:20px;">
-                        <button class="button button-primary button-large" id="giga-apw-analyze-voice">
-                            <span class="giga-apw-analyze-text">🎙️ <?php esc_html_e('Analyze My Brand Voice', 'giga-ai-product-writer'); ?></span>
-                            <span class="giga-apw-spinner" style="display:none;">⏳</span>
+                    <div class="giga-apw-actions-bar">
+                        <button class="giga-apw-button-primary" id="giga-apw-analyze-voice">
+                            <span class="giga-apw-btn-text">🎙️ <?php esc_html_e('Analyze Brand Voice', 'giga-ai-product-writer'); ?></span>
+                            <span class="giga-apw-spinner" style="display:none; margin-left: 10px;"></span>
                         </button>
-                    </p>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

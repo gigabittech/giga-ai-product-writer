@@ -34,6 +34,11 @@ $providers = [
         'type' => 'paid',
         'description' => 'Ultra-fast AI processing'
     ],
+    'zai' => [
+        'name' => 'Z.ai',
+        'type' => 'paid',
+        'description' => 'Z.ai API — fast and capable'
+    ],
     'ollama' => [
         'name' => 'Ollama',
         'type' => 'free',
@@ -134,6 +139,9 @@ if (class_exists('Giga_AI_Client')) {
                                     break;
                                 case 'groq': 
                                     echo 'Get your API key from <a href="https://console.groq.com/" target="_blank">Groq Console</a>';
+                                    break;
+                                case 'zai': 
+                                    echo 'Get your API key from <a href="https://console.z.ai/" target="_blank">Z.ai Console</a>';
                                     break;
                             }
                             ?>

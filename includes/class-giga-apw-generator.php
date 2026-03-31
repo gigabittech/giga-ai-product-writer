@@ -72,10 +72,8 @@ class Giga_APW_Generator {
     public function generate($product_id, $options = []) {
         $license = Giga_APW_License::get_instance();
         
-        if (!$license->is_pro()) {
-            if ($license->get_monthly_remaining() <= 0) {
-                return new WP_Error('limit_reached', __('Free plan limit reached (5 products/month). Please upgrade to Pro.', 'giga-ai-product-writer'));
-            }
+        if (!$license->can_generate()) {
+            return new WP_Error('limit_reached', __('Free plan limit reached (5 products/month). Please upgrade to Pro.', 'giga-ai-product-writer'));
         }
 
         $product_data = $this->get_product_data($product_id);
@@ -155,15 +153,18 @@ class Giga_APW_Generator {
 
         $generation_id = $wpdb->insert_id;
 
-        if (!$license->is_pro()) {
-            $license->increment_usage();
-        }
+        $license->record_usage();
 
         return [
             'generation_id' => $generation_id,
             'content' => $json_content,
             'scores' => $scores,
-            'monthly_remaining' => $license->get_monthly_remaining()
+            'usage' => [
+                'count' => $license->get_usage_count(),
+                'remaining' => $license->get_monthly_remaining(),
+                'limit' => GIGA_APW_FREE_LIMIT,
+                'is_pro' => $license->is_pro()
+            ]
         ];
     }
 

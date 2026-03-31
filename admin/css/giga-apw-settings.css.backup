@@ -1,0 +1,861 @@
+/* Giga AI Product Writer - Premium Settings UI */
+
+/* Reset and Base Styles */
+.giga-apw-wrap * {
+    box-sizing: border-box;
+}
+
+.giga-apw-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f8fafc;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+}
+
+/* Header Styles */
+.giga-apw-header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.giga-apw-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.giga-apw-header h1::before {
+    content: "⚡";
+    font-size: 24px;
+}
+
+.giga-apw-save-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.giga-apw-unsaved-badge {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Tab Navigation */
+.giga-apw-tabs {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 32px;
+    display: flex;
+    gap: 8px;
+    position: sticky;
+    top: 73px;
+    z-index: 90;
+}
+
+.giga-apw-tab-button {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.giga-apw-tab-button::before {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: all 0.3s ease;
+    border-radius: 3px 3px 0 0;
+}
+
+.giga-apw-tab-button:hover {
+    color: #3b82f6;
+    background: #f3f4f6;
+}
+
+.giga-apw-tab-button.active {
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.giga-apw-tab-button.active::before {
+    background: #3b82f6;
+}
+
+/* Tab Content */
+.giga-apw-tab-content {
+    display: none;
+    padding: 32px;
+    animation: fadeIn 0.3s ease;
+}
+
+.giga-apw-tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards */
+.giga-apw-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.giga-apw-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.giga-apw-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.giga-apw-card h3::before {
+    content: "⚙️";
+    font-size: 16px;
+}
+
+/* Form Fields */
+.giga-apw-field {
+    margin-bottom: 28px;
+}
+
+.giga-apw-field:last-child {
+    margin-bottom: 0;
+}
+
+.giga-apw-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.giga-apw-help-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.giga-apw-help-text a {
+    color: #3b82f6;
+    text-decoration: none;
+}
+
+.giga-apw-help-text a:hover {
+    text-decoration: underline;
+}
+
+/* Input Fields */
+.giga-apw-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.giga-apw-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.giga-apw-input:disabled {
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.giga-apw-input.small {
+    max-width: 120px;
+}
+
+/* Select Dropdowns */
+.giga-apw-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.giga-apw-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.giga-apw-select-wrapper {
+    position: relative;
+}
+
+/* Toggle Switches */
+.giga-apw-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.giga-apw-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.giga-apw-toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.giga-apw-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.giga-apw-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.giga-apw-toggle-switch input:checked + .giga-apw-toggle-slider {
+    transform: translateX(24px);
+}
+
+.giga-apw-toggle-switch input:checked {
+    background: #3b82f6;
+}
+
+.giga-apw-sub-option {
+    margin-top: 16px;
+    padding-left: 24px;
+    border-left: 2px solid #e5e7eb;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.giga-apw-sub-option.show {
+    opacity: 1;
+    max-height: 200px;
+}
+
+/* Buttons */
+.giga-apw-button-primary {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.giga-apw-button-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.giga-apw-button-primary:active {
+    transform: translateY(0);
+}
+
+.giga-apw-button-primary:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.giga-apw-button-secondary {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.giga-apw-button-secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.giga-apw-button-upgrade {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.giga-apw-button-upgrade:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.giga-apw-button-large {
+    padding: 16px 32px;
+    font-size: 16px;
+}
+
+/* Spinners */
+.giga-apw-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Actions */
+.giga-apw-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.giga-apw-connection-status {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 200px;
+    text-align: center;
+}
+
+.giga-apw-connection-status.loading {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.giga-apw-connection-status.success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.giga-apw-connection-status.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.giga-apw-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.giga-apw-toggle-password {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.giga-apw-toggle-password:hover {
+    background: #f3f4f6;
+}
+
+.giga-apw-eye-icon {
+    font-size: 16px;
+}
+
+/* Range Sliders */
+.giga-apw-range-slider {
+    margin-top: 12px;
+}
+
+.giga-apw-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.giga-apw-range-min,
+.giga-apw-range-max {
+    width: 100px;
+    padding: 8px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.giga-apw-range-separator {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.giga-apw-range-display {
+    text-align: center;
+    font-weight: 500;
+    color: #374151;
+    margin-top: 8px;
+}
+
+.giga-apw-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.giga-apw-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.giga-apw-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.giga-apw-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Temperature Control */
+.giga-apw-temperature-control {
+    margin-top: 12px;
+}
+
+.giga-apw-temperature-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+#temperature-value {
+    font-weight: 600;
+    color: #3b82f6;
+    font-size: 14px;
+}
+
+/* Quality Gate */
+.giga-apw-quality-gate-settings {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+#quality-threshold-value {
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+/* Tone Selector */
+.giga-apw-tone-selector {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.giga-apw-tone-card {
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    text-align: center;
+    min-width: 120px;
+    position: relative;
+}
+
+.giga-apw-tone-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.giga-apw-tone-card.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.giga-apw-tone-icon {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.giga-apw-tone-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Plan Overview */
+.giga-apw-plan-overview {
+    margin-bottom: 24px;
+}
+
+.giga-apw-plan-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.giga-apw-plan-badge.free {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.giga-apw-plan-badge.pro {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.giga-apw-usage-bar {
+    background: #f3f4f6;
+    border-radius: 8px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.giga-apw-usage-progress {
+    height: 100%;
+    background: #3b82f6;
+    transition: width 0.3s ease;
+}
+
+.giga-apw-usage-text {
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+}
+
+/* Upgrade Section */
+.giga-apw-upgrade-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 24px;
+    color: white;
+    text-align: center;
+}
+
+.giga-apw-upgrade-section h3 {
+    color: white;
+    margin: 0 0 8px 0;
+}
+
+.giga-apw-upgrade-description {
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.giga-apw-pro-features {
+    text-align: left;
+    margin-top: 20px;
+}
+
+.giga-apw-pro-features h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+}
+
+.giga-apw-pro-features ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.giga-apw-pro-features li {
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+/* Form Actions */
+.giga-apw-form-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Toast Notifications */
+.giga-apw-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: white;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 300px;
+    z-index: 1000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.giga-apw-toast.show {
+    transform: translateX(0);
+}
+
+.giga-apw-toast.success {
+    border-left: 4px solid #10b981;
+}
+
+.giga-apw-toast.error {
+    border-left: 4px solid #ef4444;
+}
+
+.giga-apw-toast.info {
+    border-left: 4px solid #3b82f6;
+}
+
+.giga-apw-toast-icon {
+    font-size: 18px;
+}
+
+.giga-apw-toast.success .giga-apw-toast-icon {
+    color: #10b981;
+}
+
+.giga-apw-toast.error .giga-apw-toast-icon {
+    color: #ef4444;
+}
+
+.giga-apw-toast.info .giga-apw-toast-icon {
+    color: #3b82f6;
+}
+
+.giga-apw-toast-message {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .giga-apw-header {
+        padding: 16px 20px;
+    }
+    
+    .giga-apw-tabs {
+        padding: 0 20px;
+        overflow-x: auto;
+    }
+    
+    .giga-apw-tab-button {
+        padding: 10px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    .giga-apw-tab-content {
+        padding: 20px;
+    }
+    
+    .giga-apw-card {
+        padding: 20px;
+    }
+    
+    .giga-apw-form-actions {
+        flex-direction: column;
+    }
+    
+    .giga-apw-toast {
+        right: 20px;
+        left: 20px;
+        min-width: auto;
+    }
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.giga-apw-card {
+    animation: slideIn 0.3s ease forwards;
+}
+
+/* Focus states */
+.giga-apw-input:focus,
+.giga-apw-select:focus,
+.giga-apw-tone-card:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Loading states */
+.giga-apw-button-primary.loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.giga-apw-button-primary.loading .giga-apw-btn-text {
+    opacity: 0.6;
+}
+
+/* Custom scrollbar */
+.giga-apw-wrap::-webkit-scrollbar {
+    width: 8px;
+}
+
+.giga-apw-wrap::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.giga-apw-wrap::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.giga-apw-wrap::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
