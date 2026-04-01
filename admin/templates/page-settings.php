@@ -54,8 +54,11 @@ if (class_exists('Giga_AI_Client')) {
 }
 ?>
 
-<div class="wrap giga-apw-wrap">
-    <div class="giga-apw-header">
+<div class="giga-apw-main-container">
+    <div id="giga-apw-notices-handler"></div>
+    
+    <div class="wrap giga-apw-wrap">
+        <div class="giga-apw-header">
         <h1>Settings</h1>
         <div class="giga-apw-save-status">
             <span id="giga-apw-unsaved" class="giga-apw-unsaved-badge" style="display: none;">Unsaved changes</span>
@@ -78,7 +81,7 @@ if (class_exists('Giga_AI_Client')) {
     </div>
     
     <form id="giga-apw-settings-form" class="giga-apw-form">
-        <?php wp_nonce_field('giga_apw_save_settings', 'giga_apw_settings_nonce'); ?>
+        <?php wp_nonce_field('giga_apw_settings_nonce', 'giga_apw_settings_nonce'); ?>
         
         <!-- AI Configuration Section -->
         <div id="ai-configuration" class="giga-apw-tab-content active">
@@ -149,18 +152,8 @@ if (class_exists('Giga_AI_Client')) {
                     </div>
                 <?php endif; ?>
                 
-                <div class="giga-apw-field">
-                    <label for="giga_ai_model">Model</label>
-                    <select id="giga_ai_model" name="giga_ai_model" class="giga-apw-select">
-                        <?php foreach ($available_models as $model_key => $model): ?>
-                            <option value="<?php echo esc_attr($model_key); ?>" 
-                                    <?php selected($current_model, $model_key); ?>>
-                                <?php echo esc_html($model['label']); ?>
-                                <?php if ($model_key === $current_model) echo ' ★'; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                <!-- Automated Model Selection (Hidden from UI) -->
+                <input type="hidden" id="giga_ai_model" name="giga_ai_model" value="<?php echo esc_attr($current_model); ?>">
                 
                 <div class="giga-apw-actions">
                     <button type="button" id="giga-apw-test-connection" class="giga-apw-button-primary">
@@ -465,6 +458,7 @@ if (class_exists('Giga_AI_Client')) {
             </button>
         </div>
     </form>
+    </div>
 </div>
 
 <!-- Toast Notification -->

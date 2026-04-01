@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeToggleSwitches();
     initializeFormSubmission();
     initializeUtilities();
+    initializeNoticeMover();
 
     /**
      * Initialize settings from current values
@@ -101,6 +102,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const provider = this.value;
                 console.log('Provider changed to:', provider);
                 currentProvider = provider;
+                
+                // Clear model hidden input so PHP selects the best default for the new provider
+                const modelInput = document.getElementById('giga_ai_model');
+                if (modelInput) modelInput.value = '';
+                
                 updateProviderFields(provider);
                 markFormDirty();
             });
@@ -119,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const baseUrlField = document.querySelector('#giga_ollama_base_url')?.closest('.giga-apw-field');
         const modelSelect = document.getElementById('giga_ai_model');
         
-        // Show/hide API key field
+        // Base URL field is handled by CSS or this logic if needed
         if (provider === 'ollama') {
             if (apiKeyField) apiKeyField.style.display = 'none';
             if (baseUrlField) baseUrlField.style.display = 'block';
@@ -127,61 +133,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (apiKeyField) apiKeyField.style.display = 'block';
             if (baseUrlField) baseUrlField.style.display = 'none';
         }
-        
-        // Load models for this provider
-        loadProviderModels(provider);
     }
 
-    /**
-     * Load models for selected provider
-     */
-    function loadProviderModels(provider) {
-        const modelSelect = document.getElementById('giga_ai_model');
-        const currentModel = modelSelect?.value;
-        
-        if (!modelSelect) return;
-        
-        console.log('Loading models for provider:', provider);
-        
-        // Show loading state
-        modelSelect.innerHTML = '<option value="">Loading models...</option>';
-        
-        // Get models via AJAX
-        const formData = new FormData();
-        formData.append('action', 'giga_get_models');
-        formData.append('provider', provider);
-        formData.append('nonce', giga_apw_data.nonce);
-        
-        fetch(giga_apw_data.ajax_url, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            console.log('Models response:', response);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Models data:', data);
-            if (data.success) {
-                modelSelect.innerHTML = '';
-                data.data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.label + (model.name === currentModel ? ' ★' : '');
-                    if (model.name === currentModel) {
-                        option.selected = true;
-                    }
-                    modelSelect.appendChild(option);
-                });
-            } else {
-                modelSelect.innerHTML = '<option value="">Error loading models</option>';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading models:', error);
-            modelSelect.innerHTML = '<option value="">Error loading models</option>';
-        });
-    }
 
     /**
      * Initialize form interactions
@@ -255,7 +208,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData();
         formData.append('action', 'giga_test_connection');
-        formData.append('nonce', giga_apw_data.nonce);
+        formData.append('nonce', giga_apw_data.settings_nonce);
+        
+        // Include current form data so we can test before saving
+        formData.append('provider', document.getElementById('giga_ai_provider')?.value);
+        formData.append('api_key', document.getElementById('giga_ai_api_key')?.value);
+        formData.append('model', document.getElementById('giga_ai_model')?.value);
+        formData.append('ollama_base_url', document.getElementById('giga_ollama_base_url')?.value);
         
         fetch(giga_apw_data.ajax_url, {
             method: 'POST',
@@ -521,11 +480,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Collect form data
             const formData = new FormData(form);
             
-            // Add provider data
+            // action is needed for WordPress AJAX
             formData.append('action', 'giga_save_settings');
-            formData.append('nonce', giga_apw_data.nonce);
-            formData.append('giga_ai_provider', currentProvider);
-            formData.append('giga_apw_settings_nonce', document.getElementById('giga_apw_settings_nonce').value);
+            
+            // currentProvider should already be in the form, but we ensure it's up to date
+            if (currentProvider) {
+                formData.set('giga_ai_provider', currentProvider);
+            }
             
             // Send AJAX request
             fetch(giga_apw_data.ajax_url, {
@@ -669,6 +630,45 @@ document.addEventListener('DOMContentLoaded', function() {
         if (unsavedBadge) {
             unsavedBadge.style.display = 'none';
         }
+    }
+
+    /**
+     * Move WordPress system notices to our custom handler
+     */
+    function initializeNoticeMover() {
+        const handler = document.getElementById('giga-apw-notices-handler');
+        if (!handler) return;
+
+        const moveNotices = () => {
+            // Target any native WP notice classes OR WooCommerce alerts
+            const notices = document.querySelectorAll('#wpbody-content .notice, #wpbody-content .error, #wpbody-content .updated, #wpbody-content .notice-warning, #wpbody-content .woocommerce-message, #wpbody-content .woocommerce-info, #wpbody-content .woocommerce-error');
+            
+            notices.forEach(notice => {
+                // If the notice is not already in our handler
+                if (!notice.closest('#giga-apw-notices-handler')) {
+                    handler.appendChild(notice);
+                    console.log('Relocated a WordPress/WooCommerce notice to premium handler');
+                }
+            });
+        };
+
+        // Aggressive initial move
+        setTimeout(moveNotices, 100);
+        setTimeout(moveNotices, 1000); // Catch delayed notices
+
+        // Handle dynamic notices (Ajax/React injected)
+        const observer = new MutationObserver((mutations) => {
+            moveNotices();
+        });
+
+        const target = document.querySelector('#wpbody-content');
+        if (target) {
+            observer.observe(target, { childList: true, subtree: true });
+        }
+        
+        // Also listen for WooCommerce events if possible
+        document.addEventListener('updated_checkout', moveNotices);
+        document.addEventListener('updated_cart_totals', moveNotices);
     }
 
     /**

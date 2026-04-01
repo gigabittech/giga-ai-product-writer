@@ -89,7 +89,11 @@ class Giga_APW_License {
     public function get_monthly_remaining() {
         if ($this->is_pro()) return 999999;
 
-        return max(0, GIGA_APW_FREE_LIMIT - $this->get_usage_count());
+        return max(0, $this->get_monthly_limit() - $this->get_usage_count());
+    }
+
+    public function get_monthly_limit() {
+        return $this->is_pro() ? 999999 : GIGA_APW_FREE_LIMIT;
     }
 
     public function record_usage() {

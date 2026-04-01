@@ -49,23 +49,14 @@ class Giga_APW_Admin {
     }
 
     public function sanitize_api_key($input) {
-        if (empty($input)) {
-            return '';
+        if (empty($input) || trim($input, '*') === '') {
+            return get_option('giga_ai_api_key', '');
         }
-        $key = wp_generate_password(64, true, true);
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-        $encrypted = openssl_encrypt($input, 'aes-256-cbc', wp_salt(), 0, $iv);
-        return base64_encode($encrypted . '::' . $iv);
+        return Giga_AI_Client::get_instance()->encrypt_key($input);
     }
 
     public static function get_api_key() {
-        $encrypted = get_option('giga_apw_api_key');
-        if (empty($encrypted)) return '';
-        
-        $parts = explode('::', base64_decode($encrypted), 2);
-        if (count($parts) !== 2) return '';
-        
-        return openssl_decrypt($parts[0], 'aes-256-cbc', wp_salt(), 0, $parts[1]);
+        return Giga_AI_Client::get_instance()->get_decrypted_key();
     }
 
     public function register_meta_boxes() {
@@ -77,6 +68,20 @@ class Giga_APW_Admin {
             'normal',
             'high'
         );
+    }
+
+    public function render_dashboard_page() {
+        if (!current_user_can('manage_woocommerce')) {
+            return;
+        }
+        require_once GIGA_APW_PLUGIN_DIR . 'admin/templates/page-dashboard.php';
+    }
+
+    public function render_docs_page() {
+        if (!current_user_can('manage_woocommerce')) {
+            return;
+        }
+        require_once GIGA_APW_PLUGIN_DIR . 'admin/templates/page-docs.php';
     }
 
     public function render_meta_box($post) {
@@ -98,9 +103,7 @@ class Giga_APW_Admin {
     }
     
     public function enqueue_settings_assets($hook) {
-        $allowed_screens = ['toplevel_page_giga-apw'];
-        
-        if (in_array($hook, $allowed_screens)) {
+        if (strpos($hook, 'giga-apw') !== false) {
             wp_enqueue_style(
                 'giga-apw-settings',
                 GIGA_APW_PLUGIN_URL . 'admin/css/giga-apw-settings.css',
@@ -121,7 +124,8 @@ class Giga_APW_Admin {
 
             wp_localize_script('giga-apw-settings', 'giga_apw_data', [
                 'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('giga_apw_settings_nonce'),
+                'nonce' => wp_create_nonce('giga_apw_nonce'),
+                'settings_nonce' => wp_create_nonce('giga_apw_settings_nonce'),
                 'is_pro' => $is_pro,
                 'monthly_remaining' => $monthly_remaining,
                 'strings' => [

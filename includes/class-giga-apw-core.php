@@ -32,13 +32,22 @@ class Giga_APW_Core {
 
     public function register_admin_menu() {
         add_menu_page(
-            __('Giga AI Writer', 'giga-ai-product-writer'),
+            __('Giga AI Writer Dashboard', 'giga-ai-product-writer'),
             __('Giga AI Writer', 'giga-ai-product-writer'),
             'manage_woocommerce',
             'giga-apw',
-            [$this, 'settings_page'],
+            [$this, 'dashboard_page'],
             'dashicons-edit-large',
             56
+        );
+
+        add_submenu_page(
+            'giga-apw',
+            __('Dashboard', 'giga-ai-product-writer'),
+            __('Dashboard', 'giga-ai-product-writer'),
+            'manage_woocommerce',
+            'giga-apw',
+            [$this, 'dashboard_page']
         );
 
         add_submenu_page(
@@ -64,13 +73,30 @@ class Giga_APW_Core {
             __('Settings', 'giga-ai-product-writer'),
             __('Settings', 'giga-ai-product-writer'),
             'manage_woocommerce',
-            'giga-apw',
+            'giga-apw-settings',
             [$this, 'settings_page']
         );
+
+        add_submenu_page(
+            'giga-apw',
+            __('Documentation', 'giga-ai-product-writer'),
+            __('Documentation', 'giga-ai-product-writer'),
+            'manage_woocommerce',
+            'giga-apw-docs',
+            [$this, 'docs_page']
+        );
+    }
+
+    public function dashboard_page() {
+        Giga_APW_Admin::get_instance()->render_dashboard_page();
     }
 
     public function settings_page() {
         Giga_APW_Admin::get_instance()->render_settings_page();
+    }
+
+    public function docs_page() {
+        Giga_APW_Admin::get_instance()->render_docs_page();
     }
 
     public function bulk_page() {
@@ -82,17 +108,9 @@ class Giga_APW_Core {
     }
 
     public function enqueue_admin_assets($hook) {
-        $allowed_screens = [
-            'post.php',
-            'post-new.php',
-            'toplevel_page_giga-apw',
-            'giga-ai-writer_page_giga-apw-bulk',
-            'giga-ai-writer_page_giga-apw-voice'
-        ];
-
+        $is_giga_screen = strpos($hook, 'giga-apw') !== false;
         global $post;
         $is_product_screen = ($post && $post->post_type === 'product' && in_array($hook, ['post.php', 'post-new.php']));
-        $is_giga_screen = in_array($hook, $allowed_screens) || strpos($hook, 'giga-apw') !== false;
 
         if ($is_product_screen || $is_giga_screen) {
             wp_enqueue_style(
