@@ -152,8 +152,24 @@ if (class_exists('Giga_AI_Client')) {
                     </div>
                 <?php endif; ?>
                 
-                <!-- Automated Model Selection (Hidden from UI) -->
-                <input type="hidden" id="giga_ai_model" name="giga_ai_model" value="<?php echo esc_attr($current_model); ?>">
+                <!-- Auto Model Selection Status -->
+                <div class="giga-apw-field">
+                    <label>Auto Model Selection</label>
+                    <div class="giga-apw-auto-model-status">
+                        <div class="giga-apw-auto-model-info">
+                            <span class="giga-apw-auto-model-icon">🤖</span>
+                            <div class="giga-apw-auto-model-text">
+                                <span class="giga-apw-auto-model-title">Automatic Model Selection</span>
+                                <span class="giga-apw-auto-model-desc">The system will automatically detect and use the best available model</span>
+                            </div>
+                        </div>
+                        <div class="giga-apw-auto-model-status-indicator" id="giga-apw-auto-model-status">
+                            <span class="giga-apw-status-dot"></span>
+                            <span class="giga-apw-auto-model-status-text">Ready to connect</span>
+                        </div>
+                    </div>
+                    <p class="giga-apw-help-text">No manual model selection needed. The system will automatically find and use a working model.</p>
+                </div>
                 
                 <div class="giga-apw-actions">
                     <button type="button" id="giga-apw-test-connection" class="giga-apw-button-primary">
@@ -466,6 +482,9 @@ if (class_exists('Giga_AI_Client')) {
     <div class="giga-apw-toast-content">
         <span class="giga-apw-toast-icon"></span>
         <span class="giga-apw-toast-message"></span>
+        <button type="button" class="giga-apw-toast-close" onclick="hideToast()" aria-label="Close notification">
+            <span>×</span>
+        </button>
     </div>
 </div>
 

@@ -20,9 +20,9 @@ class Giga_APW_Claude {
 
     private function __construct() {
         $this->api_key = Giga_APW_Admin::get_api_key();
-        $this->model = GIGA_APW_CLAUDE_MODEL;
-        $this->max_tokens = GIGA_APW_CLAUDE_MAX_TOKENS;
-        $this->temperature = GIGA_APW_CLAUDE_TEMPERATURE;
+        $this->model = get_option('giga_ai_model', 'claude-3-5-sonnet-20241022');
+        $this->max_tokens = 2048;
+        $this->temperature = 0.7;
         $this->api_endpoint = GIGA_APW_API_ENDPOINT;
     }
 

@@ -29,7 +29,7 @@ $license = Giga_APW_License::get_instance();
 $is_pro = $license->is_pro();
 $limit = $license->get_monthly_limit();
 $remaining = $license->get_monthly_remaining();
-$usage_percent = $limit > 0 ? round((($limit - $remaining) / $limit) * 100) : 0;
+$usage_percent = $is_pro ? 0 : ($limit > 0 ? round((($limit - $remaining) / $limit) * 100) : 0);
 
 ?>
 <div class="giga-apw-main-container">
@@ -90,7 +90,7 @@ $usage_percent = $limit > 0 ? round((($limit - $remaining) / $limit) * 100) : 0;
             <div class="giga-apw-card giga-apw-usage-card">
                 <div class="giga-apw-card-header">
                     <h3>Current Usage</h3>
-                    <span class="giga-apw-badge <?php echo $is_pro ? 'pro' : ''; ?>"><?php echo $is_pro ? 'Active' : 'Limited'; ?></span>
+                    <span class="giga-apw-badge <?php echo $is_pro ? 'pro' : 'free'; ?>"><?php echo $is_pro ? 'Active' : 'Limited'; ?></span>
                 </div>
                 <div class="giga-apw-usage-visual">
                     <div class="usage-progress-bar">

@@ -241,9 +241,19 @@ class Giga_APW_Ajax {
             $api_key = sanitize_text_field($_POST['api_key'] ?? '');
             $model = sanitize_text_field($_POST['model'] ?? '');
             
-            // Temporary override for testing
+            // Temporary override for testing with smart fallback
             add_filter('pre_option_giga_ai_provider', fn() => $provider);
-            add_filter('pre_option_giga_ai_model', fn() => $model);
+            
+            // Handle model with smart fallback
+            $available_models = $client->get_available_models();
+            if (isset($available_models[$provider][$model])) {
+                add_filter('pre_option_giga_ai_model', fn() => $model);
+            } else {
+                // Use default model if selected one is not available
+                $default_model = $client->get_default_model($provider);
+                add_filter('pre_option_giga_ai_model', fn() => $default_model);
+                error_log("Giga AI AJAX: Model {$model} not available, using default {$default_model}");
+            }
             
             if ($provider === 'ollama') {
                 $base_url = sanitize_text_field($_POST['ollama_base_url'] ?? 'http://localhost:11434');

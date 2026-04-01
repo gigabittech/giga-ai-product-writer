@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Giga APW Settings: Initializing provider selection');
         
         const providerSelect = document.getElementById('giga_ai_provider');
+        const autoModelStatus = document.getElementById('giga-apw-auto-model-status');
         
         if (providerSelect) {
             providerSelect.addEventListener('change', function() {
@@ -103,9 +104,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Provider changed to:', provider);
                 currentProvider = provider;
                 
-                // Clear model hidden input so PHP selects the best default for the new provider
+                // Clear any previous model selection
                 const modelInput = document.getElementById('giga_ai_model');
                 if (modelInput) modelInput.value = '';
+                
+                // Update auto model status
+                if (autoModelStatus) {
+                    autoModelStatus.querySelector('.giga-apw-auto-model-status-text').textContent = 'Ready to connect';
+                    autoModelStatus.querySelector('.giga-apw-status-dot').className = 'giga-apw-status-dot';
+                }
                 
                 updateProviderFields(provider);
                 markFormDirty();
@@ -123,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const apiKeyField = document.querySelector('#giga_ai_api_key')?.closest('.giga-apw-field');
         const baseUrlField = document.querySelector('#giga_ollama_base_url')?.closest('.giga-apw-field');
-        const modelSelect = document.getElementById('giga_ai_model');
         
         // Base URL field is handled by CSS or this logic if needed
         if (provider === 'ollama') {
@@ -133,6 +139,92 @@ document.addEventListener('DOMContentLoaded', function() {
             if (apiKeyField) apiKeyField.style.display = 'block';
             if (baseUrlField) baseUrlField.style.display = 'none';
         }
+    }
+    
+    /**
+     * Update model dropdown options for selected provider
+     */
+    function updateModelDropdown(provider) {
+        console.log('Updating model dropdown for provider:', provider);
+        
+        const modelSelect = document.getElementById('giga_ai_model');
+        if (!modelSelect) return;
+        
+        // Store current selection if it exists
+        const currentValue = modelSelect.value;
+        
+        // Clear existing options
+        modelSelect.innerHTML = '';
+        
+        // Add loading option
+        const loadingOption = document.createElement('option');
+        loadingOption.value = '';
+        loadingOption.textContent = 'Loading models...';
+        modelSelect.appendChild(loadingOption);
+        
+        // Fetch models for the selected provider
+        const formData = new FormData();
+        formData.append('action', 'giga_get_models');
+        formData.append('nonce', giga_apw_data.settings_nonce);
+        formData.append('provider', provider);
+        
+        fetch(giga_apw_data.ajax_url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear loading option
+                modelSelect.innerHTML = '';
+                
+                // Add model options - no "Select a model" option needed
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.label;
+                    
+                    // Restore selection if this model was previously selected
+                    if (model.name === currentValue) {
+                        option.selected = true;
+                    }
+                    
+                    modelSelect.appendChild(option);
+                });
+                
+                // Auto-select first available model if none is selected
+                if (!currentValue && data.models.length > 0) {
+                    modelSelect.value = data.models[0].name;
+                    console.log('Auto-selected model:', data.models[0].name);
+                }
+                
+                // Hide model selection dropdown - system will handle automatically
+                if (data.models.length > 0) {
+                    modelSelect.style.display = 'none';
+                    console.log('Model selection hidden - using automatic selection');
+                } else {
+                    modelSelect.style.display = 'block';
+                    console.log('No models available - showing selection dropdown');
+                }
+            } else {
+                // Handle error
+                modelSelect.innerHTML = '';
+                const errorOption = document.createElement('option');
+                errorOption.value = '';
+                errorOption.textContent = 'Failed to load models';
+                modelSelect.appendChild(errorOption);
+                modelSelect.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading models:', error);
+            modelSelect.innerHTML = '';
+            const errorOption = document.createElement('option');
+            errorOption.value = '';
+            errorOption.textContent = 'Error loading models';
+            modelSelect.appendChild(errorOption);
+            modelSelect.style.display = 'block';
+        });
     }
 
 
@@ -183,20 +275,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
-     * Test AI connection
+     * Test AI connection with smart fallback logic
      */
-    function testConnection() {
+    async function testConnection() {
         const btn = document.getElementById('giga-apw-test-connection');
         const btnText = btn?.querySelector('.giga-apw-btn-text');
         const spinner = btn?.querySelector('.giga-apw-spinner');
         const statusDiv = document.getElementById('giga-apw-connection-status');
+        const autoModelStatus = document.getElementById('giga-apw-auto-model-status');
         
         if (!btn || !btnText || !spinner || !statusDiv) {
             console.error('Test connection elements not found');
             return;
         }
         
-        console.log('Testing connection...');
+        console.log('Testing connection with automatic model selection...');
         
         // Show loading state
         btn.classList.add('loading');
@@ -206,48 +299,126 @@ document.addEventListener('DOMContentLoaded', function() {
         statusDiv.className = 'giga-apw-connection-status loading';
         statusDiv.textContent = 'Testing connection...';
         
+        if (autoModelStatus) {
+            const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
+            const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
+            statusText.textContent = 'Connecting...';
+            statusDot.className = 'giga-apw-status-dot loading';
+        }
+        
+        const provider = document.getElementById('giga_ai_provider')?.value;
+        const apiKey = document.getElementById('giga_ai_api_key')?.value;
+        const ollamaUrl = document.getElementById('giga_ollama_base_url')?.value;
+        
+        // Test connection using the backend smart fallback logic
+        try {
+            const formData = new FormData();
+            formData.append('action', 'giga_test_connection');
+            formData.append('nonce', giga_apw_data.settings_nonce);
+            formData.append('provider', provider);
+            formData.append('api_key', apiKey);
+            if (ollamaUrl) {
+                formData.append('ollama_url', ollamaUrl);
+            }
+            
+            const response = await fetch(giga_apw_data.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('Connection successful:', result);
+                statusDiv.className = 'giga-apw-connection-status success';
+                statusDiv.textContent = result.message || 'Connection successful';
+                showSuccessToast('Connection successful: ' + result.message);
+                
+                // Update auto model status
+                if (autoModelStatus) {
+                    const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
+                    const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
+                    statusText.textContent = 'Connected: ' + result.model;
+                    statusDot.className = 'giga-apw-status-dot success';
+                }
+            } else {
+                console.error('Connection failed:', result.error);
+                statusDiv.className = 'giga-apw-connection-status error';
+                statusDiv.textContent = result.error || 'Connection failed';
+                showErrorToast('Connection failed: ' + (result.error || 'Unknown error'));
+                
+                if (autoModelStatus) {
+                    const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
+                    const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
+                    statusText.textContent = 'Connection failed';
+                    statusDot.className = 'giga-apw-status-dot error';
+                }
+            }
+        } catch (error) {
+            console.error('Connection test error:', error);
+            statusDiv.className = 'giga-apw-connection-status error';
+            statusDiv.textContent = 'Network error. Please try again.';
+            showErrorToast('Network error. Please check your connection and try again.');
+            
+            if (autoModelStatus) {
+                const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
+                const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
+                statusText.textContent = 'Connection failed';
+                statusDot.className = 'giga-apw-status-dot error';
+            }
+        }
+        
+        // Reset button state
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Test Connection';
+    }
+    
+    /**
+     * Test a single connection with specific model
+     */
+    async function testSingleConnection(provider, apiKey, model, ollamaUrl) {
         const formData = new FormData();
         formData.append('action', 'giga_test_connection');
         formData.append('nonce', giga_apw_data.settings_nonce);
+        formData.append('provider', provider);
+        formData.append('api_key', apiKey);
+        formData.append('model', model);
+        formData.append('ollama_base_url', ollamaUrl);
         
-        // Include current form data so we can test before saving
-        formData.append('provider', document.getElementById('giga_ai_provider')?.value);
-        formData.append('api_key', document.getElementById('giga_ai_api_key')?.value);
-        formData.append('model', document.getElementById('giga_ai_model')?.value);
-        formData.append('ollama_base_url', document.getElementById('giga_ollama_base_url')?.value);
+        try {
+            const response = await fetch(giga_apw_data.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Single connection test error:', error);
+            return { success: false, error: 'Network error occurred' };
+        }
+    }
+    
+    /**
+     * Get available models for provider
+     */
+    async function getAvailableModels(provider) {
+        const formData = new FormData();
+        formData.append('action', 'giga_get_models');
+        formData.append('nonce', giga_apw_data.settings_nonce);
+        formData.append('provider', provider);
         
-        fetch(giga_apw_data.ajax_url, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Connection test result:', data);
-            btn.classList.remove('loading');
-            btn.disabled = false;
-            spinner.style.display = 'none';
-            btnText.textContent = 'Test Connection';
-            
-            if (data.success) {
-                statusDiv.className = 'giga-apw-connection-status success';
-                statusDiv.textContent = `✅ Connected · Model: ${data.data.model} · Response: ${data.data.latency}`;
-                showToast('Connection successful!', 'success');
-            } else {
-                statusDiv.className = 'giga-apw-connection-status error';
-                statusDiv.textContent = `❌ ${data.data.message}`;
-                showToast('Connection failed: ' + data.data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Connection test error:', error);
-            btn.classList.remove('loading');
-            btn.disabled = false;
-            spinner.style.display = 'none';
-            btnText.textContent = 'Test Connection';
-            statusDiv.className = 'giga-apw-connection-status error';
-            statusDiv.textContent = '❌ Connection error';
-            showToast('Connection error. Please try again.', 'error');
-        });
+        try {
+            const response = await fetch(giga_apw_data.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.success ? data.models.map(model => model.name) : [];
+        } catch (error) {
+            console.error('Error getting available models:', error);
+            return [];
+        }
     }
 
     /**
@@ -501,7 +672,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.textContent = originalText;
                 
                 if (data.success) {
-                    showToast('Settings saved successfully!', 'success');
+                    // Show model switching information if applicable
+                    if (data.data.model_was_switched) {
+                        showToast(`Settings saved! Using ${data.data.model} (model was auto-corrected)`, 'success');
+                    } else {
+                        showToast('Settings saved successfully!', 'success');
+                    }
                     markFormClean();
                     
                     // Update current provider if changed
@@ -689,11 +865,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set icon
         if (type === 'success') {
-            toastIcon.textContent = '✅';
+            toastIcon.textContent = '✓';
         } else if (type === 'error') {
-            toastIcon.textContent = '❌';
+            toastIcon.textContent = '✕';
         } else {
-            toastIcon.textContent = 'ℹ️';
+            toastIcon.textContent = 'ℹ';
+        }
+        
+        // Add or update close button
+        let closeBtn = toast.querySelector('.giga-apw-toast-close');
+        if (!closeBtn) {
+            closeBtn = document.createElement('button');
+            closeBtn.className = 'giga-apw-toast-close';
+            closeBtn.innerHTML = '×';
+            closeBtn.addEventListener('click', hideToast);
+            toast.appendChild(closeBtn);
         }
         
         // Show toast
@@ -704,13 +890,104 @@ document.addEventListener('DOMContentLoaded', function() {
             toast.classList.add('show');
         }, 10);
         
-        // Hide after 3 seconds
+        // Hide after 5 seconds (increased from 3 for better readability)
+        const timeoutId = setTimeout(() => {
+            hideToast();
+        }, 5000);
+        
+        // Store timeout ID for potential manual close
+        toast.dataset.timeoutId = timeoutId;
+        
+        // Add hover effect to pause auto-hide
+        toast.addEventListener('mouseenter', () => {
+            clearTimeout(parseInt(toast.dataset.timeoutId));
+            toast.dataset.paused = 'true';
+        });
+        
+        toast.addEventListener('mouseleave', () => {
+            if (toast.dataset.paused === 'true') {
+                toast.dataset.paused = 'false';
+                // Restart auto-hide after 3 seconds on mouse leave
+                const newTimeoutId = setTimeout(() => {
+                    hideToast();
+                }, 3000);
+                toast.dataset.timeoutId = newTimeoutId;
+            }
+        });
+        
+        return toast; // Return toast for potential manual control
+    }
+    
+    /**
+     * Hide toast notification
+     */
+    function hideToast() {
+        const toast = document.getElementById('giga-apw-toast');
+        if (!toast) return;
+        
+        // Clear any existing timeout
+        if (toast.dataset.timeoutId) {
+            clearTimeout(parseInt(toast.dataset.timeoutId));
+            delete toast.dataset.timeoutId;
+        }
+        
+        // Animate out
+        toast.classList.add('hiding');
         setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 300);
+            toast.style.display = 'none';
+            toast.classList.remove('hiding');
+        }, 300);
+    }
+    
+    /**
+     * Show error toast with auto-hide and manual close
+     */
+    function showErrorToast(message) {
+        const toast = showToast(message, 'error');
+        
+        // Auto-hide after 7 seconds for errors
+        setTimeout(() => {
+            hideToast();
+        }, 7000);
+        
+        return toast;
+    }
+    
+    /**
+     * Show success toast with auto-hide and manual close
+     */
+    function showSuccessToast(message) {
+        const toast = showToast(message, 'success');
+        
+        // Auto-hide after 3 seconds for success messages
+        setTimeout(() => {
+            hideToast();
         }, 3000);
+        
+        return toast;
+    }
+    
+    /**
+     * Update model status indicator
+     */
+    function updateModelStatus(data) {
+        const autoModelStatus = document.getElementById('giga-apw-auto-model-status');
+        if (!autoModelStatus) return;
+        
+        const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
+        const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
+        
+        if (data.success) {
+            statusDot.className = 'giga-apw-status-dot success';
+            if (data.model_was_switched) {
+                statusText.textContent = 'Connected: ' + data.model + ' (auto-switched)';
+            } else {
+                statusText.textContent = 'Connected: ' + data.model;
+            }
+        } else {
+            statusDot.className = 'giga-apw-status-dot error';
+            statusText.textContent = 'Connection failed';
+        }
     }
     
     console.log('Giga APW Settings: All initialization complete');

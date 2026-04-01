@@ -194,11 +194,14 @@ class Giga_APW_Scorer {
         
         if ($word_count >= $min && $word_count <= $max) return 10;
         
-        $margin = 0.2; 
+        $margin = 0.3; // Increase margin to 30%
         if ($word_count >= ($min * (1 - $margin)) && $word_count <= ($max * (1 + $margin))) {
-            return 7;
+            return 8; // Better score for close range
+        }
+        if ($word_count >= ($min * 0.8) && $word_count <= ($max * 1.2)) {
+            return 5; // Still reasonable for moderate variations
         }
 
-        return 3;
+        return 2;
     }
 }
