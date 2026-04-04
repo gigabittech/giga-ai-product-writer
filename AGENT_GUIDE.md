@@ -12,7 +12,7 @@
 **AI Engine:** Anthropic Claude API (claude-sonnet-4-20250514)  
 **License:** GPL v2+  
 **Free Plan:** 5 products/month  
-**Pro Plan:** $99/year — unlimited products, bulk generation, brand voice, SEO meta writing  
+**Pro Plan:** $99/year — unlimited products, bulk generation, SEO meta writing  
 
 ### What This Plugin Does
 A WooCommerce product description generator powered by Claude AI. For any WooCommerce product, it generates **6 content types in one click:**
@@ -41,7 +41,6 @@ giga-ai-product-writer/
 │   ├── class-giga-apw-generator.php    # Single product generation engine
 │   ├── class-giga-apw-bulk.php         # Bulk generation via WP Cron (Pro)
 │   ├── class-giga-apw-scorer.php       # Quality scoring engine (0-100)
-│   ├── class-giga-apw-voice.php        # Brand voice training (Pro)
 │   ├── class-giga-apw-seo.php          # Yoast + Rank Math meta field writer
 │   ├── class-giga-apw-preview.php      # Side-by-side preview renderer
 │   ├── class-giga-apw-admin.php        # All admin pages + meta box
@@ -56,7 +55,6 @@ giga-ai-product-writer/
 │   ├── metabox-main.php                # Product edit screen meta box
 │   ├── metabox-preview.php             # Side-by-side preview component
 │   ├── page-bulk.php                   # Bulk generation admin page
-│   ├── page-brand-voice.php            # Brand voice training admin page
 │   └── page-settings.php              # Settings page (API key, license)
 ├── languages/
 │   └── giga-ai-product-writer.pot
@@ -100,7 +98,6 @@ CREATE TABLE {prefix}_giga_apw_generations (
     
     -- Meta
     language            VARCHAR(10) DEFAULT 'en',
-    brand_voice_used    TINYINT(1) DEFAULT 0,
     tokens_used         INT UNSIGNED DEFAULT 0,
     
     PRIMARY KEY (id),
@@ -115,7 +112,6 @@ Also use these `wp_options` keys:
 giga_apw_api_key          → Encrypted Claude API key
 giga_apw_license_key      → Pro license key
 giga_apw_license_status   → 'free' | 'pro'
-giga_apw_brand_voice      → Serialized brand voice profile
 giga_apw_monthly_count    → Free plan usage count (reset monthly)
 giga_apw_monthly_reset    → Timestamp of last monthly reset
 giga_apw_bulk_progress    → Serialized bulk job progress

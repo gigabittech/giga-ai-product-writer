@@ -33,17 +33,17 @@ class Giga_APW_Ajax {
     public function test_connection() {
         check_ajax_referer('giga_apw_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('edit_products')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
 
-        $result = Giga_APW_Claude::get_instance()->test_connection();
+        $result = Giga_AI_Client::get_instance()->test_connection();
 
-        if (is_wp_error($result)) {
-            wp_send_json_error(['message' => $result->get_error_message()]);
+        if (!$result['success']) {
+            wp_send_json_error(['message' => $result['error']]);
         }
 
-        wp_send_json_success(['message' => __('Connection successful!', 'giga-ai-product-writer')]);
+        wp_send_json_success(['message' => $result['message']]);
     }
 
     public function generate() {
@@ -295,10 +295,14 @@ class Giga_APW_Ajax {
         // Save provider data
         update_option('giga_ai_provider', $provider);
         
-        // Save API key (Double encryption is avoided because sanitize_api_key handles it)
-        if ($provider !== 'ollama') {
-            update_option('giga_ai_api_key', $api_key);
-        } else {
+        // Save API key (Handle encryption manually since update_option doesn't trigger sanitization)
+        if ($provider !== 'ollama' && !empty($api_key)) {
+            if (trim($api_key, '*') !== '') {
+                $encrypted = Giga_AI_Client::get_instance()->encrypt_key($api_key);
+                update_option('giga_ai_api_key', $encrypted);
+            }
+            // If it's '********', we don't update it to avoid overwriting with junk
+        } else if ($provider === 'ollama') {
             // For Ollama, save base URL
             $base_url = sanitize_text_field($_POST['giga_ollama_base_url'] ?? 'http://localhost:11434');
             update_option('giga_ollama_base_url', $base_url);

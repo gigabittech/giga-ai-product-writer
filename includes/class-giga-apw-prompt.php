@@ -55,22 +55,6 @@ class Giga_APW_Prompt
 
         $prompt .= "BANNED PHRASES. You MUST NOT use any of these phrases under any circumstances:\n- " . implode("\n- ", $banned_phrases) . "\n\n";
 
-        if ($brand_voice_profile && !empty($brand_voice_profile)) {
-            $prompt .= "Brand Voice Requirements:\n";
-            $prompt .= "Write in a {$brand_voice_profile['tone']} tone. ";
-            $prompt .= "Use {$brand_voice_profile['vocabulary_level']} vocabulary. ";
-            $prompt .= "Sentences should be {$brand_voice_profile['avg_sentence_length']}. ";
-            $prompt .= "{$brand_voice_profile['formatting_style']}. ";
-            $prompt .= "Write from the {$brand_voice_profile['perspective']} perspective. ";
-
-            if (!empty($brand_voice_profile['key_patterns'])) {
-                $prompt .= "Emulate these patterns: " . implode(', ', $brand_voice_profile['key_patterns']) . ". ";
-            }
-            if (!empty($brand_voice_profile['brand_adjectives'])) {
-                $prompt .= "Always use these brand adjectives where natural: " . implode(', ', $brand_voice_profile['brand_adjectives']) . ".\n\n";
-            }
-        }
-
         $prompt .= "WooCommerce context:\n- HTML formatting rules: Use <p>, <ul>, <li>, <strong> tags for structure.\n- Return the exact JSON structure requested by the user, adhering strictly to length constraints.\n\n";
 
         return $prompt;
@@ -142,29 +126,6 @@ class Giga_APW_Prompt
         $prompt .= "- tags must be lowercase, no special characters.\n";
         $prompt .= "- length of alt_texts array must match the number of images ({$product_data['image_count']}).\n";
         $prompt .= "- Note for alt texts: Since direct image analysis is pending v1.2, generate highly descriptive, SEO-optimized alt text using the product title, features, and available attributes.\n";
-
-        return $prompt;
-    }
-
-    public function build_brand_voice_analysis_prompt($examples)
-    {
-        $prompt = "You are a brand voice analyst. Analyze the following product description examples and extract the brand's voice profile.\n\n";
-        foreach ($examples as $index => $example) {
-            $prompt .= "Example " . ($index + 1) . ":\n" . $example . "\n\n";
-        }
-
-        $prompt .= "Return your analysis ONLY in the following JSON format:\n";
-        $prompt .= "{\n";
-        $prompt .= "  \"tone\": \"e.g. professional and authoritative\",\n";
-        $prompt .= "  \"vocabulary_level\": \"e.g. intermediate\",\n";
-        $prompt .= "  \"avg_sentence_length\": \"e.g. medium (12-18 words)\",\n";
-        $prompt .= "  \"formatting_style\": \"e.g. uses bullet points for features, paragraphs for benefits\",\n";
-        $prompt .= "  \"perspective\": \"e.g. second person (you/your)\",\n";
-        $prompt .= "  \"key_patterns\": [\"pattern1\", \"pattern2\"],\n";
-        $prompt .= "  \"brand_adjectives\": [\"adj1\", \"adj2\"],\n";
-        $prompt .= "  \"avoid_patterns\": [\"pattern1\", \"pattern2\"],\n";
-        $prompt .= "  \"example_opening\": \"First 30 chars of style example...\"\n";
-        $prompt .= "}\n";
 
         return $prompt;
     }

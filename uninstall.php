@@ -18,10 +18,12 @@ $wpdb->query( "DROP TABLE IF EXISTS $table_name" );
 
 // 2. Delete plugin options
 delete_option( 'giga_apw_settings' );
-delete_option( 'giga_apw_api_key' );
+delete_option( 'giga_ai_provider' );
+delete_option( 'giga_ai_api_key' );
+delete_option( 'giga_ai_model' );
+delete_option( 'giga_ollama_base_url' );
 delete_option( 'giga_apw_license_key' );
 delete_option( 'giga_apw_license_status' );
-delete_option( 'giga_apw_brand_voice_profile' );
 delete_option( 'giga_apw_bulk_progress' );
 
 // 3. Clear usage transients/options

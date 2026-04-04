@@ -72,7 +72,6 @@ class Giga_APW_Bulk {
             'auto_publish' => isset($_POST['auto_publish']) && $_POST['auto_publish'] === 'true',
             'tone' => sanitize_text_field($_POST['tone'] ?? ''),
             'language' => sanitize_text_field($_POST['language'] ?? 'en'),
-            'use_brand_voice' => isset($_POST['use_brand_voice']) && $_POST['use_brand_voice'] === 'true',
             'filter_type' => sanitize_text_field($_POST['filter_type'] ?? 'all'),
         ];
 

@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$api_key = get_option('giga_apw_api_key', '');
+$api_key = Giga_APW_Admin::get_api_key();
 $license = Giga_APW_License::get_instance();
 $is_pro = $license->is_pro();
 $monthly_remaining = $license->get_monthly_remaining();
@@ -73,13 +73,6 @@ $default_language = $settings['default_language'] ?? 'en';
             <textarea id="giga_apw_instructions" placeholder="<?php esc_attr_e('Emphasize the waterproof feature. Target hikers aged 25-45.', 'giga-ai-product-writer'); ?>"></textarea>
         </div>
 
-        <div class="giga-apw-field giga-apw-checkbox">
-            <label>
-                <input type="checkbox" id="giga_apw_brand_voice" <?php echo !$is_pro ? 'disabled' : ''; ?>>
-                <?php _e('Use my brand voice', 'giga-ai-product-writer'); ?>
-                <?php if (!$is_pro) echo '<i>(' . __('Pro only', 'giga-ai-product-writer') . ')</i>'; ?>
-            </label>
-        </div>
 
         <button type="button" id="giga-apw-generate-btn" class="button button-primary button-large giga-apw-generate-btn" <?php echo empty($api_key) ? 'disabled' : ''; ?>>
             <span class="giga-apw-btn-text">✨ <?php _e('Generate All Content', 'giga-ai-product-writer'); ?></span>

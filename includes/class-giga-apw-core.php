@@ -26,7 +26,6 @@ class Giga_APW_Core {
         Giga_APW_Admin::get_instance();
         Giga_APW_License::get_instance();
         Giga_APW_Bulk::get_instance();
-        Giga_APW_Voice::get_instance();
         Giga_APW_Preview::get_instance();
     }
 
@@ -57,15 +56,6 @@ class Giga_APW_Core {
             'manage_woocommerce',
             'giga-apw-bulk',
             [$this, 'bulk_page']
-        );
-
-        add_submenu_page(
-            'giga-apw',
-            __('Brand Voice (Pro)', 'giga-ai-product-writer'),
-            __('Brand Voice (Pro)', 'giga-ai-product-writer'),
-            'manage_woocommerce',
-            'giga-apw-voice',
-            [$this, 'voice_page']
         );
 
         add_submenu_page(
@@ -101,10 +91,6 @@ class Giga_APW_Core {
 
     public function bulk_page() {
         Giga_APW_Admin::get_instance()->render_bulk_page();
-    }
-
-    public function voice_page() {
-        Giga_APW_Admin::get_instance()->render_voice_page();
     }
 
     public function enqueue_admin_assets($hook) {

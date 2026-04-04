@@ -455,7 +455,6 @@ if (class_exists('Giga_AI_Client')) {
                             <ul>
                                 <li>✓ Unlimited products per month</li>
                                 <li>✓ Bulk Generate (generate 50+ products at once)</li>
-                                <li>✓ Brand Voice customization</li>
                                 <li>✓ Priority support</li>
                             </ul>
                         </div>

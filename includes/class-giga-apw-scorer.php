@@ -20,22 +20,33 @@ class Giga_APW_Scorer {
         $seo = $this->calculate_seo($generated_content, $product_data);
         $uniqueness = $this->calculate_uniqueness($generated_content['long_description'], $product_data['existing_description'] ?? '');
         $benefits = $this->calculate_benefits($generated_content['long_description']);
-        $length = $this->calculate_length($generated_content['long_description'], $settings['min_words'], $settings['max_words']);
+        
+        $long_min = $settings['min_words'] ?? GIGA_APW_MIN_WORDS;
+        $long_max = $settings['max_words'] ?? GIGA_APW_MAX_WORDS;
+        $short_min = GIGA_APW_SHORT_MIN_WORDS;
+        $short_max = GIGA_APW_SHORT_MAX_WORDS;
+        
+        $length_long = $this->calculate_length($generated_content['long_description'], $long_min, $long_max);
+        $length_short = $this->calculate_length($generated_content['short_description'] ?? '', $short_min, $short_max);
+        
+        $length = ($length_long + $length_short) / 2;
 
         $total = $readability + $seo + $uniqueness + $benefits + $length;
         
-        if ($total >= 80) {
+        $threshold = defined('GIGA_APW_QUALITY_GATE') ? GIGA_APW_QUALITY_GATE : 70;
+
+        if ($total >= 90) {
             $grade = 'excellent';
             $grade_label = __('Excellent', 'giga-ai-product-writer');
             $grade_color = '#22c55e';
-        } elseif ($total >= 60) {
+        } elseif ($total >= $threshold) {
             $grade = 'good';
             $grade_label = __('Good', 'giga-ai-product-writer');
-            $grade_color = '#f59e0b';
+            $grade_color = '#3b82f6'; // Professional blue for "Good"
         } else {
             $grade = 'needs_improvement';
             $grade_label = __('Needs Improvement', 'giga-ai-product-writer');
-            $grade_color = '#ef4444';
+            $grade_color = '#ef4444'; // Red for warning
         }
 
         return [
@@ -47,7 +58,8 @@ class Giga_APW_Scorer {
             'length' => (int) round($length),
             'grade' => $grade,
             'grade_label' => $grade_label,
-            'grade_color' => $grade_color
+            'grade_color' => $grade_color,
+            'warning' => $total < $threshold
         ];
     }
 

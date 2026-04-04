@@ -19,7 +19,6 @@ Giga AI Product Writer is the ultimate companion for WooCommerce store owners wh
 * **WooCommerce Native:** Deeply integrated with product attributes, categories, and tags.
 * **SEO Optimized:** Generates Meta Titles and Descriptions compatible with Yoast SEO and Rank Math.
 * **Quality Scoring:** Real-time analysis of readability, SEO keyword density, and benefit-to-feature ratio.
-* **Brand Voice (Pro):** Train the AI on your existing descriptions to match your unique brand tone perfectly.
 * **Bulk Generation (Pro):** Update hundreds of products in the background with a single click.
 
 = External API Disclosure =
@@ -45,8 +44,7 @@ The free version allows for 5 generations per month. Upgrade to Pro for unlimite
 == Screenshots ==
 1. Product Edit Meta Box showing quality scores.
 2. Settings page with API configuration.
-3. Brand Voice training interface.
-4. Bulk generation progress tracker.
+3. Bulk generation progress tracker.
 
 == Changelog ==
 

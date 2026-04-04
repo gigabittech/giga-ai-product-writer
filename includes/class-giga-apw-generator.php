@@ -88,19 +88,14 @@ class Giga_APW_Generator {
         $product_data['additional_instructions'] = $options['additional_instructions'] ?? '';
         $product_data['language'] = $options['language'] ?? $settings['default_language'] ?? 'en';
 
-        $prompt_builder = Giga_APW_Prompt::get_instance();
-        $brand_voice = null;
-        if (!empty($options['use_brand_voice']) && $license->is_pro()) {
-            if (class_exists('Giga_APW_Voice')) {
-                $brand_voice = Giga_APW_Voice::get_instance()->get_profile();
-            }
-        }
+        $temperature = floatval($options['temperature'] ?? $settings['temperature'] ?? 0.7);
 
-        $system_prompt = $prompt_builder->build_system_prompt($brand_voice);
+        $prompt_builder = Giga_APW_Prompt::get_instance();
+        $system_prompt = $prompt_builder->build_system_prompt();
         $user_prompt = $prompt_builder->build_user_prompt($product_data, $settings);
 
         $ai_client = Giga_AI_Client::get_instance();
-        $response_data = $ai_client->generate($user_prompt, $system_prompt);
+        $response_data = $ai_client->generate($user_prompt, $system_prompt, $temperature);
 
         if (isset($response_data['error'])) {
             return new WP_Error('ai_error', $response_data['error']);
@@ -110,7 +105,7 @@ class Giga_APW_Generator {
         $json_content = json_decode($text_content, true);
 
         if (!$json_content || !isset($json_content['long_description'])) {
-            return new WP_Error('invalid_json', __('Claude API returned an invalid JSON structure.', 'giga-ai-product-writer'));
+            return new WP_Error('invalid_json', sprintf(__('%s API returned an invalid JSON structure.', 'giga-ai-product-writer'), ucfirst(get_option('giga_ai_provider', 'AI'))));
         }
 
         if (isset($json_content['meta_title']) && mb_strlen($json_content['meta_title']) > GIGA_APW_META_TITLE_MAX) {
@@ -147,7 +142,6 @@ class Giga_APW_Generator {
             'score_length' => $scores['length'],
             'status' => 'generated',
             'language' => $product_data['language'],
-            'brand_voice_used' => $brand_voice ? 1 : 0,
             'tokens_used' => $tokens_used
         ]);
 

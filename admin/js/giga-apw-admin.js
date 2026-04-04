@@ -1,9 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
+    function getProductId() {
+        let productId = document.getElementById('post_ID')?.value;
+        if (!productId && typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
+            productId = wp.data.select('core/editor').getCurrentPostId();
+        }
+        return productId || 0;
+    }
+
     const testBtn = document.getElementById('giga-apw-test-connection');
     if (testBtn) {
         testBtn.addEventListener('click', function() {
             const resultSpan = document.getElementById('giga-apw-test-result');
-            const apiKey = document.getElementById('giga_apw_api_key').value;
+            const apiKey = document.getElementById('giga_ai_api_key')?.value;
             
             resultSpan.textContent = ' Testing...';
             resultSpan.className = '';
@@ -77,9 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const tone = document.getElementById('giga_apw_tone')?.value || '';
             const language = document.getElementById('giga_apw_language')?.value || '';
             const additionalInstructions = document.getElementById('giga_apw_instructions')?.value || '';
-            const useBrandVoice = document.getElementById('giga_apw_brand_voice')?.checked || false;
             
-            const productId = document.getElementById('post_ID')?.value;
+            const productId = getProductId();
 
             const formData = new FormData();
             formData.append('action', 'giga_apw_generate');
@@ -89,7 +96,6 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('tone', tone);
             formData.append('language', language);
             formData.append('additional_instructions', additionalInstructions);
-            formData.append('use_brand_voice', useBrandVoice);
 
             fetch(giga_apw_data.ajax_url, {
                 method: 'POST',
@@ -118,6 +124,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('giga-score-uniqueness').textContent = score.uniqueness + '/25';
                     document.getElementById('giga-score-benefits').textContent = score.benefits + '/15';
                     document.getElementById('giga-score-length').textContent = score.length + '/10';
+
+                    // Add warning notice if score is low (< 70)
+                    const warningBox = document.getElementById('giga-apw-quality-warning');
+                    if (score.total < 70) {
+                        if (!warningBox) {
+                            const newWarning = document.createElement('div');
+                            newWarning.id = 'giga-apw-quality-warning';
+                            newWarning.className = 'giga-apw-notice warning';
+                            newWarning.style.marginTop = '15px';
+                            newWarning.innerHTML = `<strong>⚠️ Warning:</strong> Quality score is below 70. We recommend regenerating for better results.`;
+                            document.getElementById('giga-apw-score-section').appendChild(newWarning);
+                        }
+                    } else if (warningBox) {
+                        warningBox.remove();
+                    }
 
                     document.getElementById('giga-apw-preview-section').style.display = 'block';
                     document.getElementById('giga-apw-generation-id').value = data.data.generation_id;
@@ -316,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const historyModal = document.getElementById('giga-apw-history-modal');
     if (historyBtn && historyModal) {
         historyBtn.addEventListener('click', function() {
-            const productId = document.getElementById('post_ID')?.value;
+            const productId = getProductId();
             
             const formData = new FormData();
             formData.append('action', 'giga_apw_get_history');
@@ -387,62 +408,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('giga-apw-score-section').style.display = 'none';
             document.getElementById('giga-apw-preview-section').style.display = 'none';
             document.getElementById('giga-apw-generate-btn').scrollIntoView({ behavior: 'smooth' });
-        });
-    }
-
-    // --- BRAND VOICE ---
-    const voiceExamples = document.querySelectorAll('.giga-apw-voice-example');
-    voiceExamples.forEach(area => {
-        area.addEventListener('input', function() {
-            const words = this.value.trim().split(/\s+/).filter(w => w.length > 0).length;
-            const counter = this.nextElementSibling;
-            if (counter && counter.classList.contains('giga-apw-word-count')) {
-                counter.textContent = words + ' words';
-                counter.style.color = words < 50 ? '#d63638' : '#646970';
-            }
-        });
-    });
-
-    const analyzeBtn = document.getElementById('giga-apw-analyze-voice');
-    if (analyzeBtn) {
-        analyzeBtn.addEventListener('click', function() {
-            const examples = Array.from(voiceExamples).map(v => v.value.trim()).filter(v => v.length > 0);
-            if (examples.length < 3) {
-                alert('Please provide at least 3 valid examples.');
-                return;
-            }
-
-            analyzeBtn.disabled = true;
-            analyzeBtn.querySelector('.giga-apw-spinner').style.display = 'inline-block';
-            
-            const formData = new FormData();
-            formData.append('action', 'giga_apw_analyze_voice');
-            formData.append('nonce', giga_apw_data.nonce);
-            examples.forEach(ex => formData.append('examples[]', ex));
-
-            fetch(giga_apw_data.ajax_url, { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Brand voice analyzed successfully!');
-                    location.reload();
-                } else {
-                    alert(data.data.message);
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.querySelector('.giga-apw-spinner').style.display = 'none';
-                }
-            });
-        });
-    }
-
-    const clearVoiceBtn = document.getElementById('giga-apw-clear-voice');
-    if (clearVoiceBtn) {
-        clearVoiceBtn.addEventListener('click', function() {
-            if (!confirm('Are you sure you want to clear your brand voice profile?')) return;
-            const formData = new FormData();
-            formData.append('action', 'giga_apw_clear_voice');
-            formData.append('nonce', giga_apw_data.nonce);
-            fetch(giga_apw_data.ajax_url, { method: 'POST', body: formData }).then(() => location.reload());
         });
     }
 

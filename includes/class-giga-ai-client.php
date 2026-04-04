@@ -27,7 +27,7 @@ class Giga_AI_Client
      * @param string $system_prompt System prompt
      * @return array Response with 'text' key or 'error' key
      */
-    public function generate($prompt, $system_prompt = '')
+    public function generate($prompt, $system_prompt = '', $temperature = 0.7)
     {
         $provider = get_option('giga_ai_provider', 'claude');
         $api_key = $this->get_decrypted_key();
@@ -61,17 +61,17 @@ class Giga_AI_Client
 
         switch ($provider) {
             case 'claude':
-                return $this->call_claude($prompt, $system_prompt, $api_key, $model);
+                return $this->call_claude($prompt, $system_prompt, $api_key, $model, $temperature);
             case 'openai':
-                return $this->call_openai($prompt, $system_prompt, $api_key, $model);
+                return $this->call_openai($prompt, $system_prompt, $api_key, $model, $temperature);
             case 'gemini':
-                return $this->call_gemini($prompt, $system_prompt, $api_key, $model);
+                return $this->call_gemini($prompt, $system_prompt, $api_key, $model, $temperature);
             case 'groq':
-                return $this->call_groq($prompt, $system_prompt, $api_key, $model);
+                return $this->call_groq($prompt, $system_prompt, $api_key, $model, $temperature);
             case 'zai':
-                return $this->call_zai($prompt, $system_prompt, $api_key, $model);
+                return $this->call_zai($prompt, $system_prompt, $api_key, $model, $temperature);
             case 'ollama':
-                return $this->call_ollama($prompt, $system_prompt, $model);
+                return $this->call_ollama($prompt, $system_prompt, $model, $temperature);
             default:
                 return ['error' => sprintf(__('Unknown AI provider selected: %s', 'giga-ai-product-writer'), $provider)];
         }
@@ -217,40 +217,24 @@ class Giga_AI_Client
             return ['valid' => false, 'error' => 'API key is required'];
         }
         
+        $api_key = trim($api_key);
+        
         // Basic format validation for each provider
         switch ($provider) {
             case 'claude':
-                // Claude API keys typically start with 'sk-' and are 32+ characters
-                if (strlen($api_key) < 32 || strpos($api_key, 'sk-') !== 0) {
-                    return ['valid' => false, 'error' => 'Invalid Claude API key format. Please check your API key.'];
-                }
-                break;
-                
             case 'openai':
-                // OpenAI API keys typically start with 'sk-' and are 32+ characters
-                if (strlen($api_key) < 32 || strpos($api_key, 'sk-') !== 0) {
-                    return ['valid' => false, 'error' => 'Invalid OpenAI API key format. Please check your API key.'];
+            case 'zai':
+            case 'groq':
+                // Most API keys are 20+ chars
+                if (strlen($api_key) < 20) {
+                    return ['valid' => false, 'error' => sprintf('Invalid %s API key format. The key is too short.', ucfirst($provider))];
                 }
                 break;
                 
             case 'gemini':
-                // Gemini API keys are typically 39 characters long
-                if (strlen($api_key) != 39) {
+                // Gemini API keys are usually 39 characters, but let's be safe.
+                if (strlen($api_key) < 30) {
                     return ['valid' => false, 'error' => 'Invalid Google Gemini API key format. Please check your API key.'];
-                }
-                break;
-                
-            case 'groq':
-                // Groq API keys typically start with 'gsk_' and are 40+ characters
-                if (strlen($api_key) < 40 || strpos($api_key, 'gsk_') !== 0) {
-                    return ['valid' => false, 'error' => 'Invalid Groq API key format. Please check your API key.'];
-                }
-                break;
-                
-            case 'zai':
-                // Z.ai API keys typically start with 'sk-' and are 32+ characters
-                if (strlen($api_key) < 32 || strpos($api_key, 'sk-') !== 0) {
-                    return ['valid' => false, 'error' => 'Invalid Z.ai API key format. Please check your API key.'];
                 }
                 break;
                 
@@ -319,9 +303,9 @@ class Giga_AI_Client
                 'gemma2-9b-it' => ['name' => 'gemma2-9b-it', 'label' => 'Gemma 2 9B']
             ],
             'zai' => [
-                'z-pro' => ['name' => 'z-pro', 'label' => 'z-pro (Recommended)'],
-                'z-fast' => ['name' => 'z-fast', 'label' => 'z-fast'],
-                'z-mini' => ['name' => 'z-mini', 'label' => 'z-mini']
+                'glm-4-flash' => ['name' => 'glm-4-flash', 'label' => 'GLM-4 Flash (Fast & Free)'],
+                'glm-4' => ['name' => 'glm-4', 'label' => 'GLM-4 (Balanced)'],
+                'glm-4-plus' => ['name' => 'glm-4-plus', 'label' => 'GLM-4 Plus (Most Capable)']
             ],
             'ollama' => [
                 'llama3' => ['name' => 'llama3', 'label' => 'Llama 3'],
@@ -346,7 +330,7 @@ class Giga_AI_Client
             'openai' => 'gpt-4o-mini',
             'gemini' => 'gemini-2.0-flash',
             'groq' => 'llama-3.3-70b-versatile',
-            'zai' => 'z-pro',  // Changed from 'glm-4-flash' to 'z-pro' which is the recommended model
+            'zai' => 'glm-4-flash',
             'ollama' => 'llama3'
         ];
 
@@ -356,7 +340,7 @@ class Giga_AI_Client
     /**
      * Call Anthropic Claude API
      */
-    private function call_claude($prompt, $system, $key, $model)
+    private function call_claude($prompt, $system, $key, $model, $temperature = 0.7)
     {
         $response = wp_remote_post('https://api.anthropic.com/v1/messages', [
             'headers' => [
@@ -367,6 +351,7 @@ class Giga_AI_Client
             'body' => json_encode([
                 'model' => $model,
                 'max_tokens' => 2048,
+                'temperature' => (float)$temperature,
                 'system' => $system,
                 'messages' => [['role' => 'user', 'content' => $prompt]]
             ]),
@@ -414,7 +399,7 @@ class Giga_AI_Client
     /**
      * Call OpenAI API
      */
-    private function call_openai($prompt, $system, $key, $model)
+    private function call_openai($prompt, $system, $key, $model, $temperature = 0.7)
     {
         $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
@@ -428,6 +413,7 @@ class Giga_AI_Client
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'max_tokens' => 2048,
+                'temperature' => (float)$temperature,
             ]),
             'timeout' => 60,
         ]);
@@ -450,14 +436,17 @@ class Giga_AI_Client
     /**
      * Call Google Gemini API
      */
-    private function call_gemini($prompt, $system, $key, $model)
+    private function call_gemini($prompt, $system, $key, $model, $temperature = 0.7)
     {
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}";
         $response = wp_remote_post($url, [
             'headers' => ['Content-Type' => 'application/json'],
             'body' => json_encode([
                 'contents' => [['parts' => [['text' => $system . "\n\n" . $prompt]]]],
-                'generationConfig' => ['maxOutputTokens' => 2048]
+                'generationConfig' => [
+                    'maxOutputTokens' => 2048,
+                    'temperature' => (float)$temperature
+                ]
             ]),
             'timeout' => 60,
         ]);
@@ -480,7 +469,7 @@ class Giga_AI_Client
     /**
      * Call Groq API (OpenAI-compatible)
      */
-    private function call_groq($prompt, $system, $key, $model)
+    private function call_groq($prompt, $system, $key, $model, $temperature = 0.7)
     {
         $response = wp_remote_post('https://api.groq.com/openai/v1/chat/completions', [
             'headers' => [
@@ -494,6 +483,7 @@ class Giga_AI_Client
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'max_tokens' => 2048,
+                'temperature' => (float)$temperature,
             ]),
             'timeout' => 60,
         ]);
@@ -516,7 +506,7 @@ class Giga_AI_Client
     /**
      * Call Ollama API (local)
      */
-    private function call_ollama($prompt, $system, $model)
+    private function call_ollama($prompt, $system, $model, $temperature = 0.7)
     {
         $base_url = get_option('giga_ollama_base_url', 'http://localhost:11434');
         $response = wp_remote_post($base_url . '/api/generate', [
@@ -525,6 +515,9 @@ class Giga_AI_Client
                 'model' => $model,
                 'prompt' => $system . "\n\n" . $prompt,
                 'stream' => false,
+                'options' => [
+                    'temperature' => (float)$temperature
+                ]
             ]),
             'timeout' => 120,
         ]);
@@ -543,7 +536,7 @@ class Giga_AI_Client
     /**
      * Call Z.ai API (OpenAI-compatible)
      */
-    private function call_zai($prompt, $system, $key, $model)
+    private function call_zai($prompt, $system, $key, $model, $temperature = 0.7)
     {
         $response = wp_remote_post('https://open.bigmodel.cn/api/paas/v4/chat/completions', [
             'headers' => [
@@ -557,6 +550,7 @@ class Giga_AI_Client
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'max_tokens' => 2048,
+                'temperature' => (float)$temperature,
             ]),
             'timeout' => 30,
         ]);
@@ -931,6 +925,7 @@ class Giga_AI_Client
      */
     private function decrypt($data, $key)
     {
-        return openssl_decrypt(base64_decode($data), 'AES-256-CBC', $key, 0, substr($key, 0, 16));
+        $decrypted = openssl_decrypt(base64_decode($data), 'AES-256-CBC', $key, 0, substr($key, 0, 16));
+        return $decrypted !== false ? $decrypted : $data; // Return original if decryption fails (fallback for plain text)
     }
 }

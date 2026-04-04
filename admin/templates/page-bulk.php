@@ -99,15 +99,6 @@ $default_language = $settings['default_language'] ?? 'en';
                     <div class="giga-apw-bulk-toggles">
                         <div class="giga-apw-toggle-card">
                             <label class="giga-apw-toggle-label">
-                                <input type="checkbox" id="giga_apw_bulk_brand_voice" checked>
-                                <div class="toggle-info">
-                                    <strong><?php esc_html_e('Apply Brand Voice', 'giga-ai-product-writer'); ?></strong>
-                                    <span><?php esc_html_e('Use your trained AI persona', 'giga-ai-product-writer'); ?></span>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="giga-apw-toggle-card">
-                            <label class="giga-apw-toggle-label">
                                 <input type="checkbox" id="giga_apw_bulk_auto_publish">
                                 <div class="toggle-info">
                                     <strong><?php esc_html_e('Auto-publish', 'giga-ai-product-writer'); ?></strong>
