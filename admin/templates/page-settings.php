@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 $settings = get_option('giga_apw_settings', []);
 $current_provider = get_option('giga_ai_provider', 'claude');
 $current_api_key = get_option('giga_ai_api_key', '');
-$current_model = get_option('giga_ai_model', 'claude-sonnet-4-5');
+$current_model = get_option('giga_ai_model', 'claude-3-5-sonnet-20241022');
 $license_key = get_option('giga_apw_license_key', '');
 $is_pro = Giga_APW_License::get_instance()->is_pro();
 $monthly_remaining = Giga_APW_License::get_instance()->get_monthly_remaining();
@@ -103,54 +103,43 @@ if (class_exists('Giga_AI_Client')) {
                     <p class="giga-apw-help-text">Choose your AI provider for content generation</p>
                 </div>
                 
-                <?php if ($current_provider === 'ollama'): ?>
-                    <div class="giga-apw-field">
-                        <label for="giga_ollama_base_url">Base URL</label>
-                        <input type="url" 
-                               id="giga_ollama_base_url" 
-                               name="giga_ollama_base_url" 
-                               value="<?php echo esc_attr(get_option('giga_ollama_base_url', 'http://localhost:11434')); ?>" 
+                <div class="giga-apw-field provider-field-group provider-ollama-only" style="<?php echo $current_provider !== 'ollama' ? 'display: none;' : ''; ?>">
+                    <label for="giga_ollama_base_url">Ollama Base URL</label>
+                    <input type="url" 
+                           id="giga_ollama_base_url" 
+                           name="giga_ollama_base_url" 
+                           value="<?php echo esc_attr(get_option('giga_ollama_base_url', 'http://localhost:11434')); ?>" 
+                           class="giga-apw-input"
+                           placeholder="http://localhost:11434">
+                    <p class="giga-apw-help-text">Default: http://localhost:11434</p>
+                </div>
+                
+                <div class="giga-apw-field provider-field-group provider-paid-only" style="<?php echo $current_provider === 'ollama' ? 'display: none;' : ''; ?>">
+                    <label for="giga_ai_api_key">API Key</label>
+                    <div class="giga-apw-input-group">
+                        <input type="password" 
+                               id="giga_ai_api_key" 
+                               name="giga_ai_api_key" 
+                               value="<?php echo $current_api_key ? '********' : ''; ?>" 
                                class="giga-apw-input"
-                               placeholder="http://localhost:11434">
-                        <p class="giga-apw-help-text">Default: http://localhost:11434</p>
+                               placeholder="Enter your API key">
+                        <button type="button" class="giga-apw-toggle-password" data-show="false">
+                            <span class="giga-apw-eye-icon">👁️</span>
+                        </button>
                     </div>
-                <?php else: ?>
-                    <div class="giga-apw-field">
-                        <label for="giga_ai_api_key">API Key</label>
-                        <div class="giga-apw-input-group">
-                            <input type="password" 
-                                   id="giga_ai_api_key" 
-                                   name="giga_ai_api_key" 
-                                   value="<?php echo $current_api_key ? '********' : ''; ?>" 
-                                   class="giga-apw-input"
-                                   placeholder="Enter your API key">
-                            <button type="button" class="giga-apw-toggle-password" data-show="false">
-                                <span class="giga-apw-eye-icon">👁️</span>
-                            </button>
-                        </div>
-                        <p class="giga-apw-help-text">
-                            <?php 
-                            switch ($current_provider) {
-                                case 'claude': 
-                                    echo 'Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>';
-                                    break;
-                                case 'openai': 
-                                    echo 'Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Dashboard</a>';
-                                    break;
-                                case 'gemini': 
-                                    echo 'Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>';
-                                    break;
-                                case 'groq': 
-                                    echo 'Get your API key from <a href="https://console.groq.com/" target="_blank">Groq Console</a>';
-                                    break;
-                                case 'zai': 
-                                    echo 'Get your API key from <a href="https://console.z.ai/" target="_blank">Z.ai Console</a>';
-                                    break;
-                            }
-                            ?>
-                        </p>
-                    </div>
-                <?php endif; ?>
+                    <p class="giga-apw-help-text" id="giga-apw-api-key-help">
+                        <?php 
+                        switch ($current_provider) {
+                            case 'claude': echo 'Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>'; break;
+                            case 'openai': echo 'Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Dashboard</a>'; break;
+                            case 'gemini': echo 'Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>'; break;
+                            case 'groq': echo 'Get your API key from <a href="https://console.groq.com/" target="_blank">Groq Console</a>'; break;
+                            case 'zai': echo 'Get your API key from <a href="https://console.z.ai/" target="_blank">Z.ai Console</a>'; break;
+                            default: echo 'Configure your API key for content generation'; break;
+                        }
+                        ?>
+                    </p>
+                </div>
                 
                 <!-- Auto Model Selection Status -->
                 <div class="giga-apw-field">

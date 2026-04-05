@@ -82,32 +82,28 @@ class Giga_AI_Client
      *
      * @return array Connection test result
      */
-    public function test_connection()
+    public function test_connection($provider = null, $api_key = null, $base_url = null)
     {
         $start = microtime(true);
-        $provider = get_option('giga_ai_provider', 'claude');
-        $api_key = $this->get_decrypted_key();
-
-        // Log the test attempt with detailed debugging (without exposing sensitive data)
+        
+        // Use provided values or get from DB
+        $provider = $provider ?? get_option('giga_ai_provider', 'claude');
+        if ($api_key === null) {
+            $api_key = $this->get_decrypted_key();
+        }
+        
         error_log("Giga AI: Testing connection for provider: {$provider}");
-        error_log("Giga AI: API key validation - " . (empty($api_key) ? 'Empty' : 'Provided (' . strlen($api_key) . ' chars)'));
-
-        // Validate required parameters with detailed error messages
-        if ($provider !== 'ollama' && empty($api_key)) {
-            error_log("Giga AI Error: API key required for provider: {$provider}");
-            return ['success' => false, 'error' => 'API key is required for this provider. Please configure it in settings.'];
+        
+        // Basic validation
+        $validation = $this->validate_api_key($provider, $api_key);
+        if (!$validation['valid']) {
+            return ['success' => false, 'error' => $validation['error']];
         }
 
-        // Validate API key format based on provider
-        $key_validation = $this->validate_api_key($provider, $api_key);
-        if (!$key_validation['valid']) {
-            error_log("Giga AI Error: API key validation failed for {$provider}: " . $key_validation['error']);
-            return ['success' => false, 'error' => $key_validation['error']];
+        $all_models = $this->get_models_for_provider($provider);
+        if (empty($all_models)) {
+            return ['success' => false, 'error' => 'No models available for provider: ' . $provider];
         }
-
-        // Get available models for the provider
-        $available_models = $this->get_available_models();
-        $all_models = $available_models[$provider] ?? [];
         
         // Start with the currently selected model or get default
         $original_model = get_option('giga_ai_model', '');
@@ -126,7 +122,7 @@ class Giga_AI_Client
             error_log("Giga AI: Testing model: {$model_name}");
             
             try {
-                $result = $this->test_single_model($provider, $api_key, $model_name);
+                $result = $this->test_single_model($provider, $api_key, $model_name, $base_url);
                 $test_results[$model_name] = $result;
                 
                 if ($result['success']) {
@@ -146,7 +142,7 @@ class Giga_AI_Client
             }
         }
         
-        $time = round((microtime(true) - $start) * 1000);
+        $time = round((microtime(true) - $start = microtime(true)) * 1000);
 
         // Handle connection results with specific error messages
         if (!$successful_connection) {
@@ -155,34 +151,37 @@ class Giga_AI_Client
             $auth_errors = [];
             $server_errors = [];
             
-            foreach ($test_results as $result) {
-                if (isset($result['error'])) {
-                    $error_msg = strtolower($result['error']);
-                    if (strpos($error_msg, 'network') !== false ||
-                        strpos($error_msg, 'timeout') !== false ||
-                        strpos($error_msg, 'curl') !== false) {
-                        $network_errors[] = $result['error'];
-                    } else if (strpos($error_msg, 'api key') !== false ||
-                              strpos($error_msg, 'unauthorized') !== false ||
-                              strpos($error_msg, '401') !== false) {
-                        $auth_errors[] = $result['error'];
+            foreach ($test_results as $res) {
+                if (isset($res['error'])) {
+                    $error_msg = strtolower($res['error']);
+                    if (strpos($error_msg, 'network') !== false || strpos($error_msg, 'timeout') !== false || strpos($error_msg, 'curl') !== false || strpos($error_msg, 'connection') !== false || strpos($error_msg, 'refused') !== false || strpos($error_msg, 'resolve') !== false || strpos($error_msg, 'host') !== false) {
+                        $network_errors[] = $res['error'];
+                    } else if (strpos($error_msg, 'api key') !== false || strpos($error_msg, 'unauthorized') !== false || strpos($error_msg, '401') !== false || strpos($error_msg, 'invalid') !== false) {
+                        $auth_errors[] = $res['error'];
                     } else if (strpos($error_msg, '500') !== false ||
                               strpos($error_msg, 'server') !== false ||
                               strpos($error_msg, 'service') !== false) {
-                        $server_errors[] = $result['error'];
+                        $server_errors[] = $res['error'];
                     }
                 }
             }
             
             // Provide specific error message based on error type
             if (!empty($auth_errors)) {
-                $error_message = 'Invalid API key. Please check your API key and ensure it has the correct permissions.';
+                $error_message = 'Invalid API key. Please check your API key and ensure it has the correct permissions. (' . implode(', ', array_unique($auth_errors)) . ')';
             } else if (!empty($network_errors)) {
-                $error_message = 'Network connection error. Please check your internet connection and try again.';
+                $error_message = 'Network connection error. Please check your internet connection or firewall. (' . implode(', ', array_unique($network_errors)) . ')';
             } else if (!empty($server_errors)) {
-                $error_message = 'AI service is temporarily unavailable. Please try again later.';
+                $error_message = 'AI service is temporarily unavailable or returned a server error. (' . implode(', ', array_unique($server_errors)) . ')';
             } else {
-                $error_message = 'Unable to connect to the AI service. Please check your API key and network connection.';
+                // If no category matched, provide the actual errors from the test attempts
+                $actual_errors = [];
+                foreach ($test_results as $model_name => $res) {
+                    if (isset($res['error'])) {
+                        $actual_errors[] = "[{$model_name}]: {$res['error']}";
+                    }
+                }
+                $error_message = 'Connection failed. ' . (empty($actual_errors) ? 'Please check your configuration.' : implode('; ', array_slice($actual_errors, 0, 2)));
             }
             
             error_log("Giga AI Connection Failed: " . $error_message);
@@ -211,13 +210,9 @@ class Giga_AI_Client
     /**
      * Validate API key format based on provider
      */
-    private function validate_api_key($provider, $api_key)
+    public function validate_api_key($provider, $api_key)
     {
-        if (empty($api_key)) {
-            return ['valid' => false, 'error' => 'API key is required'];
-        }
-        
-        $api_key = trim($api_key);
+        $api_key = trim((string)$api_key);
         
         // Basic format validation for each provider
         switch ($provider) {
@@ -225,16 +220,13 @@ class Giga_AI_Client
             case 'openai':
             case 'zai':
             case 'groq':
-                // Most API keys are 20+ chars
-                if (strlen($api_key) < 20) {
-                    return ['valid' => false, 'error' => sprintf('Invalid %s API key format. The key is too short.', ucfirst($provider))];
-                }
-                break;
-                
             case 'gemini':
-                // Gemini API keys are usually 39 characters, but let's be safe.
-                if (strlen($api_key) < 30) {
-                    return ['valid' => false, 'error' => 'Invalid Google Gemini API key format. Please check your API key.'];
+                if (empty($api_key) || $api_key === '********') {
+                    return ['valid' => false, 'error' => sprintf('API key is required for %s.', ucfirst($provider))];
+                }
+                // Very loose validation - let the service handle it
+                if (strlen($api_key) < 5 && $api_key !== '********') {
+                    return ['valid' => false, 'error' => sprintf('Invalid %s API key format.', ucfirst($provider))];
                 }
                 break;
                 
@@ -252,7 +244,7 @@ class Giga_AI_Client
     /**
      * Test a single model connection
      */
-    private function test_single_model($provider, $api_key, $model)
+    private function test_single_model($provider, $api_key, $model, $base_url = null)
     {
         switch ($provider) {
             case 'claude':
@@ -266,7 +258,8 @@ class Giga_AI_Client
             case 'zai':
                 return $this->test_zai_connection($api_key, $model);
             case 'ollama':
-                return $this->test_ollama_connection($model);
+                // Pass base_url to Ollama test if provided
+                return $this->test_ollama_connection($model, $base_url);
             default:
                 return ['success' => false, 'error' => 'Unknown provider: ' . $provider];
         }
@@ -280,7 +273,14 @@ class Giga_AI_Client
     public function get_available_models()
     {
         $provider = get_option('giga_ai_provider', 'claude');
+        return $this->get_models_for_provider($provider);
+    }
 
+    /**
+     * Get models for a specific provider
+     */
+    public function get_models_for_provider($provider)
+    {
         $models = [
             'claude' => [
                 'claude-3-5-sonnet-20241022' => ['name' => 'claude-3-5-sonnet-20241022', 'label' => 'Claude 3.5 Sonnet (Recommended)'],
@@ -508,7 +508,13 @@ class Giga_AI_Client
      */
     private function call_ollama($prompt, $system, $model, $temperature = 0.7)
     {
-        $base_url = get_option('giga_ollama_base_url', 'http://localhost:11434');
+        $base_url = get_option('giga_ollama_base_url', 'http://127.0.0.1:11434');
+        
+        // Ensure we use 127.0.0.1 instead of localhost to avoid IPv6 resolution delays on some Windows setups
+        if (strpos($base_url, 'localhost') !== false) {
+            $base_url = str_replace('localhost', '127.0.0.1', $base_url);
+        }
+
         $response = wp_remote_post($base_url . '/api/generate', [
             'headers' => ['Content-Type' => 'application/json'],
             'body' => json_encode([
@@ -519,18 +525,33 @@ class Giga_AI_Client
                     'temperature' => (float)$temperature
                 ]
             ]),
-            'timeout' => 120,
+            'timeout' => 600, // Increased to 10 minutes for very slow local hardware
         ]);
 
-        if (is_wp_error($response))
-            return ['error' => $response->get_error_message()];
-        $body = json_decode(wp_remote_retrieve_body($response), true);
+        if (is_wp_error($response)) {
+            $error_msg = $response->get_error_message();
+            if (strpos($error_msg, 'cURL error 28') !== false) {
+                return ['error' => __('Ollama is taking too long to respond. This usually happens when the model is loading or your computer is under heavy load. Please try again in 1-2 minutes.', 'giga-ai-product-writer')];
+            }
+            return ['error' => $error_msg];
+        }
+        $raw_body = wp_remote_retrieve_body($response);
+        $body = json_decode($raw_body, true);
 
         if (!isset($body['response'])) {
-            return ['error' => 'Invalid response format from Ollama API'];
+            return ['error' => 'Invalid response format from Ollama API. Body: ' . substr($raw_body, 0, 100)];
         }
 
-        return ['text' => $body['response']];
+        $text = $body['response'];
+        
+        // Extract JSON structure if the model added conversational filler
+        if (strpos($text, '{') !== false && strpos($text, '}') !== false) {
+            $start = strpos($text, '{');
+            $end = strrpos($text, '}') + 1;
+            $text = substr($text, $start, $end - $start);
+        }
+
+        return ['text' => $text];
     }
 
     /**
@@ -538,7 +559,7 @@ class Giga_AI_Client
      */
     private function call_zai($prompt, $system, $key, $model, $temperature = 0.7)
     {
-        $response = wp_remote_post('https://open.bigmodel.cn/api/paas/v4/chat/completions', [
+        $response = wp_remote_post('https://api.z.ai/api/paas/v4/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $key,
                 'Content-Type' => 'application/json',
@@ -767,7 +788,9 @@ class Giga_AI_Client
      */
     private function test_zai_connection($key, $model)
     {
-        $response = wp_remote_post('https://open.bigmodel.cn/api/paas/v4/chat/completions', [
+        // Try the new Z.ai endpoint first
+        $endpoint = 'https://api.z.ai/api/paas/v4/chat/completions';
+        $response = wp_remote_post($endpoint, [
             'headers' => [
                 'Authorization' => 'Bearer ' . $key,
                 'Content-Type' => 'application/json',
@@ -786,15 +809,22 @@ class Giga_AI_Client
         }
         
         $response_code = wp_remote_retrieve_response_code($response);
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-
-        if (isset($body['error'])) {
-            $error_msg = $body['error']['message'] ?? 'Z.ai API error';
-            return ['error' => $this->get_user_friendly_error($error_msg, 'Z.ai', $response_code)];
-        }
+        $raw_body = wp_remote_retrieve_body($response);
+        $body = json_decode($raw_body, true);
 
         if ($response_code !== 200) {
-            return ['error' => $this->get_user_friendly_error('HTTP Error ' . $response_code, 'Z.ai', $response_code)];
+            // Z.ai/Zhipu often returns errors at top level or nested
+            $error_msg = 'Z.ai API error';
+            if (isset($body['error']['message'])) {
+                $error_msg = $body['error']['message'];
+            } else if (isset($body['message'])) {
+                $error_msg = $body['message'];
+            } else if (isset($body['msg'])) {
+                $error_msg = $body['msg'];
+            }
+            
+            error_log("Giga AI Z.ai Error ({$response_code}): " . $error_msg . " | Body: " . $raw_body);
+            return ['error' => $this->get_user_friendly_error($error_msg, 'Z.ai', $response_code)];
         }
 
         if (!isset($body['choices'][0]['message']['content'])) {
@@ -807,9 +837,16 @@ class Giga_AI_Client
     /**
      * Test Ollama connection
      */
-    private function test_ollama_connection($model)
+    private function test_ollama_connection($model, $base_url = null)
     {
-        $base_url = get_option('giga_ollama_base_url', 'http://localhost:11434');
+        $base_url = $base_url ?? get_option('giga_ollama_base_url', 'http://127.0.0.1:11434');
+        $base_url = rtrim($base_url, '/');
+        
+        // Ensure 127.0.0.1 for faster local resolution on Windows
+        if (strpos($base_url, 'localhost') !== false) {
+            $base_url = str_replace('localhost', '127.0.0.1', $base_url);
+        }
+        
         $response = wp_remote_post($base_url . '/api/generate', [
             'headers' => ['Content-Type' => 'application/json'],
             'body' => json_encode([
@@ -817,7 +854,7 @@ class Giga_AI_Client
                 'prompt' => 'Hi',
                 'stream' => false,
             ]),
-            'timeout' => 30,
+            'timeout' => 60, // Increased for model loading
         ]);
 
         if (is_wp_error($response)) {

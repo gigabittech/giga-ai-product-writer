@@ -1,19 +1,22 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
-class Giga_APW_Ajax {
+class Giga_APW_Ajax
+{
     private static $instance = null;
 
-    public static function get_instance() {
-        if ( null === self::$instance ) {
+    public static function get_instance()
+    {
+        if (null === self::$instance) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    private function __construct() {
+    private function __construct()
+    {
         add_action('wp_ajax_giga_apw_test_connection', [$this, 'test_connection']);
         add_action('wp_ajax_giga_apw_generate', [$this, 'generate']);
         add_action('wp_ajax_giga_apw_publish', [$this, 'publish']);
@@ -22,7 +25,7 @@ class Giga_APW_Ajax {
         add_action('wp_ajax_giga_apw_activate_license', [$this, 'activate_license']);
         add_action('wp_ajax_giga_apw_deactivate_license', [$this, 'deactivate_license']);
         add_action('wp_ajax_giga_apw_get_current_content', [$this, 'get_current_content']);
-        
+
         // New AJAX handlers for multi-provider system
         add_action('wp_ajax_giga_test_connection', [$this, 'test_connection_new']);
         add_action('wp_ajax_giga_save_settings', [$this, 'save_settings']);
@@ -30,7 +33,8 @@ class Giga_APW_Ajax {
         add_action('wp_ajax_giga_activate_license', [$this, 'activate_license']);
     }
 
-    public function test_connection() {
+    public function test_connection()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
 
         if (!current_user_can('edit_products')) {
@@ -46,9 +50,13 @@ class Giga_APW_Ajax {
         wp_send_json_success(['message' => $result['message']]);
     }
 
-    public function generate() {
+    public function generate()
+    {
+        // Increase execution time for slow AI generators (Ollama)
+        set_time_limit(600);
+
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        
+
         if (!current_user_can('edit_products')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
@@ -76,15 +84,16 @@ class Giga_APW_Ajax {
         wp_send_json_success($result);
     }
 
-    public function publish() {
+    public function publish()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        
+
         if (!current_user_can('edit_products')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
 
         $generation_id = isset($_POST['generation_id']) ? intval($_POST['generation_id']) : 0;
-        $approved_fields = isset($_POST['approved_fields']) && is_array($_POST['approved_fields']) 
+        $approved_fields = isset($_POST['approved_fields']) && is_array($_POST['approved_fields'])
             ? array_map('sanitize_text_field', $_POST['approved_fields']) : [];
 
         if (!$generation_id || empty($approved_fields)) {
@@ -104,42 +113,47 @@ class Giga_APW_Ajax {
         ]);
     }
 
-    public function get_history() {
+    public function get_history()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        
+
         if (!current_user_can('edit_products')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
 
         $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
-        if (!$product_id) wp_send_json_error();
+        if (!$product_id)
+            wp_send_json_error();
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'giga_apw_generations';
         $limit = Giga_APW_License::get_instance()->is_pro() ? 20 : 3;
-        
+
         $history = $wpdb->get_results($wpdb->prepare("SELECT id, generated_at, quality_score, status FROM $table_name WHERE product_id = %d ORDER BY generated_at DESC LIMIT %d", $product_id, $limit));
 
         wp_send_json_success(['history' => $history]);
     }
 
-    public function revert() {
+    public function revert()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        
+
         if (!current_user_can('edit_products')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
 
         $generation_id = isset($_POST['generation_id']) ? intval($_POST['generation_id']) : 0;
-        
+
         global $wpdb;
         $table_name = $wpdb->prefix . 'giga_apw_generations';
         $gen = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $generation_id));
 
-        if (!$gen) wp_send_json_error(['message' => 'Generation not found.']);
+        if (!$gen)
+            wp_send_json_error(['message' => 'Generation not found.']);
 
         $old_data_json = get_post_meta($gen->product_id, "_giga_apw_revert_{$generation_id}", true);
-        if (!$old_data_json) wp_send_json_error(['message' => 'No revert data found.']);
+        if (!$old_data_json)
+            wp_send_json_error(['message' => 'No revert data found.']);
 
         $old_data = json_decode($old_data_json, true);
 
@@ -178,9 +192,11 @@ class Giga_APW_Ajax {
         wp_send_json_success(['message' => 'Successfully reverted.']);
     }
 
-    public function activate_license() {
+    public function activate_license()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        if (!current_user_can('manage_woocommerce')) wp_send_json_error([], 403);
+        if (!current_user_can('manage_woocommerce'))
+            wp_send_json_error([], 403);
 
         $key = sanitize_text_field($_POST['license_key'] ?? '');
         $result = Giga_APW_License::get_instance()->activate($key);
@@ -192,22 +208,27 @@ class Giga_APW_Ajax {
         wp_send_json_success(['message' => __('Pro license activated successfully!', 'giga-ai-product-writer')]);
     }
 
-    public function deactivate_license() {
+    public function deactivate_license()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        if (!current_user_can('manage_woocommerce')) wp_send_json_error([], 403);
+        if (!current_user_can('manage_woocommerce'))
+            wp_send_json_error([], 403);
 
         Giga_APW_License::get_instance()->deactivate();
         wp_send_json_success(['message' => __('License deactivated.', 'giga-ai-product-writer')]);
     }
 
-    public function get_current_content() {
+    public function get_current_content()
+    {
         check_ajax_referer('giga_apw_nonce', 'nonce');
-        
+
         $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
-        if (!$product_id) wp_send_json_error();
+        if (!$product_id)
+            wp_send_json_error();
 
         $product = wc_get_product($product_id);
-        if (!$product) wp_send_json_error();
+        if (!$product)
+            wp_send_json_error();
 
         $seo_class = class_exists('Giga_APW_SEO') ? Giga_APW_SEO::get_instance() : null;
         $meta = $seo_class ? $seo_class->read_existing_meta($product_id) : [];
@@ -222,11 +243,12 @@ class Giga_APW_Ajax {
             'tags' => is_array($tags) ? $tags : []
         ]);
     }
-    
+
     /**
      * New test connection method using unified AI client
      */
-    public function test_connection_new() {
+    public function test_connection_new()
+    {
         check_ajax_referer('giga_apw_settings_nonce', 'nonce');
 
         if (!current_user_can('manage_woocommerce')) {
@@ -234,16 +256,16 @@ class Giga_APW_Ajax {
         }
 
         $client = Giga_AI_Client::get_instance();
-        
+
         // If testing from settings page without saving yet
         if (isset($_POST['provider'])) {
             $provider = sanitize_text_field($_POST['provider']);
             $api_key = sanitize_text_field($_POST['api_key'] ?? '');
             $model = sanitize_text_field($_POST['model'] ?? '');
-            
+
             // Temporary override for testing with smart fallback
             add_filter('pre_option_giga_ai_provider', fn() => $provider);
-            
+
             // Handle model with smart fallback
             $available_models = $client->get_available_models();
             if (isset($available_models[$provider][$model])) {
@@ -254,31 +276,36 @@ class Giga_APW_Ajax {
                 add_filter('pre_option_giga_ai_model', fn() => $default_model);
                 error_log("Giga AI AJAX: Model {$model} not available, using default {$default_model}");
             }
-            
+
             if ($provider === 'ollama') {
-                $base_url = sanitize_text_field($_POST['ollama_base_url'] ?? 'http://localhost:11434');
-                add_filter('pre_option_giga_ollama_base_url', fn() => $base_url);
+                $base_url = sanitize_text_field($_POST['ollama_url'] ?? $_POST['ollama_base_url'] ?? 'http://localhost:11434');
+                add_filter('pre_option_giga_ollama_base_url', function () use ($base_url) {
+                    return $base_url; });
             } else if (!empty($api_key) && trim($api_key, '*') !== '') {
                 $encrypted = $client->encrypt_key($api_key);
-                add_filter('pre_option_giga_ai_api_key', fn() => $encrypted);
+                add_filter('pre_option_giga_ai_api_key', function () use ($encrypted) {
+                    return $encrypted; });
             }
         }
 
-        $result = $client->test_connection();
+        $result = $client->test_connection($provider, $api_key, $base_url);
 
-        if (isset($result['error'])) {
-            wp_send_json_error(['message' => $result['error']]);
+        if (!$result['success']) {
+            // Ensure error message is in a consistent property
+            $result['message'] = $result['error'];
+            wp_send_json_error($result);
         }
 
         wp_send_json_success($result);
     }
-    
+
     /**
      * Save all settings via AJAX
      */
-    public function save_settings() {
+    public function save_settings()
+    {
         check_ajax_referer('giga_apw_settings_nonce', 'giga_apw_settings_nonce');
-        
+
         if (!current_user_can('manage_woocommerce')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
@@ -287,14 +314,14 @@ class Giga_APW_Ajax {
         $provider = sanitize_text_field($_POST['giga_ai_provider'] ?? 'claude');
         $api_key = sanitize_text_field($_POST['giga_ai_api_key'] ?? '');
         $model = sanitize_text_field($_POST['giga_ai_model'] ?? '');
-        
+
         // Get settings data
         $settings = isset($_POST['giga_apw_settings']) && is_array($_POST['giga_apw_settings'])
             ? $this->sanitize_settings($_POST['giga_apw_settings']) : [];
-        
+
         // Save provider data
         update_option('giga_ai_provider', $provider);
-        
+
         // Save API key (Handle encryption manually since update_option doesn't trigger sanitization)
         if ($provider !== 'ollama' && !empty($api_key)) {
             if (trim($api_key, '*') !== '') {
@@ -307,30 +334,31 @@ class Giga_APW_Ajax {
             $base_url = sanitize_text_field($_POST['giga_ollama_base_url'] ?? 'http://localhost:11434');
             update_option('giga_ollama_base_url', $base_url);
         }
-        
+
         // Save model
         if (empty($model)) {
             $client = Giga_AI_Client::get_instance();
             $model = $client->get_default_model($provider);
         }
         update_option('giga_ai_model', $model);
-        
+
         // Save settings
         update_option('giga_apw_settings', $settings);
-        
+
         wp_send_json_success([
             'message' => __('Settings saved successfully.', 'giga-ai-product-writer'),
             'provider' => $provider,
             'model' => $model
         ]);
     }
-    
+
     /**
      * Get available models for selected provider
      */
-    public function get_models() {
+    public function get_models()
+    {
         check_ajax_referer('giga_apw_settings_nonce', 'nonce');
-        
+
         if (!current_user_can('manage_woocommerce')) {
             wp_send_json_error(['message' => __('Insufficient permissions', 'giga-ai-product-writer')], 403);
         }
@@ -338,7 +366,7 @@ class Giga_APW_Ajax {
         $provider = sanitize_text_field($_POST['provider'] ?? 'claude');
         $client = Giga_AI_Client::get_instance();
         $models = $client->get_available_models();
-        
+
         $formatted_models = [];
         foreach ($models as $model_key => $model) {
             $formatted_models[] = [
@@ -346,76 +374,77 @@ class Giga_APW_Ajax {
                 'label' => $model['label']
             ];
         }
-        
+
         wp_send_json_success(['models' => $formatted_models]);
     }
-    
+
     /**
      * Sanitize settings data
      */
-    private function sanitize_settings($settings) {
+    private function sanitize_settings($settings)
+    {
         $sanitized = [];
-        
+
         if (isset($settings['default_language'])) {
             $sanitized['default_language'] = sanitize_text_field($settings['default_language']);
         }
-        
+
         if (isset($settings['default_tone'])) {
             $sanitized['default_tone'] = sanitize_text_field($settings['default_tone']);
         }
-        
+
         if (isset($settings['use_quality_gate'])) {
             $sanitized['use_quality_gate'] = $settings['use_quality_gate'] ? 1 : 0;
         }
-        
+
         if (isset($settings['quality_gate_threshold'])) {
             $sanitized['quality_gate_threshold'] = absint($settings['quality_gate_threshold']);
         }
-        
+
         if (isset($settings['min_words'])) {
             $sanitized['min_words'] = absint($settings['min_words']);
         }
-        
+
         if (isset($settings['max_words'])) {
             $sanitized['max_words'] = absint($settings['max_words']);
         }
-        
+
         if (isset($settings['short_min_words'])) {
             $sanitized['short_min_words'] = absint($settings['short_min_words']);
         }
-        
+
         if (isset($settings['short_max_words'])) {
             $sanitized['short_max_words'] = absint($settings['short_max_words']);
         }
-        
+
         if (isset($settings['auto_save_draft'])) {
             $sanitized['auto_save_draft'] = $settings['auto_save_draft'] ? 1 : 0;
         }
-        
+
         if (isset($settings['generate_seo'])) {
             $sanitized['generate_seo'] = $settings['generate_seo'] ? 1 : 0;
         }
-        
+
         if (isset($settings['include_focus_keyword'])) {
             $sanitized['include_focus_keyword'] = $settings['include_focus_keyword'] ? 1 : 0;
         }
-        
+
         if (isset($settings['include_specs'])) {
             $sanitized['include_specs'] = $settings['include_specs'] ? 1 : 0;
         }
-        
+
         if (isset($settings['generate_tags'])) {
             $sanitized['generate_tags'] = $settings['generate_tags'] ? 1 : 0;
         }
-        
+
         if (isset($settings['max_tags'])) {
             $sanitized['max_tags'] = absint($settings['max_tags']);
         }
-        
+
         if (isset($settings['temperature'])) {
             $sanitized['temperature'] = floatval($settings['temperature']);
         }
-        
+
         return $sanitized;
     }
 }

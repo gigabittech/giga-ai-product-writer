@@ -4,10 +4,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $api_key = Giga_APW_Admin::get_api_key();
+$provider = get_option('giga_ai_provider', 'claude');
 $license = Giga_APW_License::get_instance();
 $is_pro = $license->is_pro();
 $monthly_remaining = $license->get_monthly_remaining();
 $settings = get_option('giga_apw_settings', []);
+
+// Check if configured correctly based on provider
+$is_configured = ($provider === 'ollama') || !empty($api_key);
 
 $tones = ['Professional', 'Casual', 'Technical', 'Luxury', 'Playful', 'Auto-detect'];
 $default_tone = $settings['default_tone'] ?? 'Professional';
@@ -35,9 +39,9 @@ $default_language = $settings['default_language'] ?? 'en';
         </div>
     </div>
 
-    <?php if (empty($api_key)): ?>
+    <?php if (!$is_configured): ?>
         <div class="giga-apw-notice error">
-            <p><?php printf(__('API Key is missing. Please configure it in the <a href="%s">Settings page</a> before generating content.', 'giga-ai-product-writer'), admin_url('admin.php?page=giga-apw')); ?></p>
+            <p><?php printf(__('API Key is missing. Please configure it in the <a href="%s">Settings page</a> before generating content.', 'giga-ai-product-writer'), admin_url('admin.php?page=giga-apw-settings')); ?></p>
         </div>
     <?php endif; ?>
 
@@ -74,11 +78,11 @@ $default_language = $settings['default_language'] ?? 'en';
         </div>
 
 
-        <button type="button" id="giga-apw-generate-btn" class="button button-primary button-large giga-apw-generate-btn" <?php echo empty($api_key) ? 'disabled' : ''; ?>>
+        <button type="button" id="giga-apw-generate-btn" class="button button-primary button-large giga-apw-generate-btn" <?php echo !$is_configured ? 'disabled' : ''; ?>>
             <span class="giga-apw-btn-text">✨ <?php _e('Generate All Content', 'giga-ai-product-writer'); ?></span>
             <span class="giga-apw-spinner" style="display:none;">⏳</span>
         </button>
-        <p class="giga-apw-estimate"><?php _e('Estimated time: ~8 seconds', 'giga-ai-product-writer'); ?></p>
+        <p class="giga-apw-estimate"><?php echo ($provider === 'ollama') ? __('Estimated time: 30-90 seconds (Local AI)', 'giga-ai-product-writer') : __('Estimated time: ~10-15 seconds', 'giga-ai-product-writer'); ?></p>
     </div>
 
     <!-- QUALITY SCORE (Hidden initially) -->

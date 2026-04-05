@@ -128,16 +128,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateProviderFields(provider) {
         console.log('Updating provider fields for:', provider);
         
-        const apiKeyField = document.querySelector('#giga_ai_api_key')?.closest('.giga-apw-field');
-        const baseUrlField = document.querySelector('#giga_ollama_base_url')?.closest('.giga-apw-field');
+        const paidOnlyFields = document.querySelectorAll('.provider-paid-only');
+        const ollamaOnlyFields = document.querySelectorAll('.provider-ollama-only');
+        const apiKeyHelp = document.getElementById('giga-apw-api-key-help');
         
-        // Base URL field is handled by CSS or this logic if needed
         if (provider === 'ollama') {
-            if (apiKeyField) apiKeyField.style.display = 'none';
-            if (baseUrlField) baseUrlField.style.display = 'block';
+            paidOnlyFields.forEach(f => f.style.display = 'none');
+            ollamaOnlyFields.forEach(f => f.style.display = 'block');
         } else {
-            if (apiKeyField) apiKeyField.style.display = 'block';
-            if (baseUrlField) baseUrlField.style.display = 'none';
+            paidOnlyFields.forEach(f => f.style.display = 'block');
+            ollamaOnlyFields.forEach(f => f.style.display = 'none');
+            
+            // Update help text for API key
+            if (apiKeyHelp) {
+                let helpText = 'Configure your API key for content generation';
+                switch (provider) {
+                    case 'claude': helpText = 'Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>'; break;
+                    case 'openai': helpText = 'Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Dashboard</a>'; break;
+                    case 'gemini': helpText = 'Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>'; break;
+                    case 'groq': helpText = 'Get your API key from <a href="https://console.groq.com/" target="_blank">Groq Console</a>'; break;
+                    case 'zai': helpText = 'Get your API key from <a href="https://console.z.ai/" target="_blank">Z.ai Console</a>'; break;
+                }
+                apiKeyHelp.innerHTML = helpText;
+            }
         }
     }
     
@@ -318,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('provider', provider);
             formData.append('api_key', apiKey);
             if (ollamaUrl) {
-                formData.append('ollama_url', ollamaUrl);
+                formData.append('ollama_base_url', ollamaUrl);
             }
             
             const response = await fetch(giga_apw_data.ajax_url, {
@@ -330,22 +343,25 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (result.success) {
                 console.log('Connection successful:', result);
+                const msg = result.message || result.data?.message || 'Connection successful';
                 statusDiv.className = 'giga-apw-connection-status success';
-                statusDiv.textContent = result.message || 'Connection successful';
-                showSuccessToast('Connection successful: ' + result.message);
+                statusDiv.textContent = msg;
+                showSuccessToast('Connection successful: ' + msg);
                 
                 // Update auto model status
                 if (autoModelStatus) {
                     const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
                     const statusDot = autoModelStatus.querySelector('.giga-apw-status-dot');
-                    statusText.textContent = 'Connected: ' + result.model;
+                    const connectedModel = result.model || result.data?.model;
+                    statusText.textContent = 'Connected: ' + connectedModel;
                     statusDot.className = 'giga-apw-status-dot success';
                 }
             } else {
-                console.error('Connection failed:', result.error);
+                const errorMsg = result.error || result.data?.error || result.data?.message || 'Unknown error';
+                console.error('Connection failed:', errorMsg);
                 statusDiv.className = 'giga-apw-connection-status error';
-                statusDiv.textContent = result.error || 'Connection failed';
-                showErrorToast('Connection failed: ' + (result.error || 'Unknown error'));
+                statusDiv.textContent = errorMsg;
+                showErrorToast('Connection failed: ' + errorMsg);
                 
                 if (autoModelStatus) {
                     const statusText = autoModelStatus.querySelector('.giga-apw-auto-model-status-text');
